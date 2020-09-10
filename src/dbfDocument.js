@@ -15,6 +15,35 @@ class dbfDocument {
         this.info = {};
         var infoStream = fs.createReadStream(uri.fsPath, {start: 0, end: 32});
         infoStream.on("data",(data)=> this.setInfo(data) );
+        this.onReady = undefined;
+        this.ready = false;
+    }
+
+    on(what,how) {
+        var dest;
+        if(what=="ready") {
+            dest = "onReady";
+        }
+        if(dest) {
+            if(this[dest]) {
+                if(!Array.isArray(this[dest]))
+                    this[dest] = [this[dest]];
+                this[dest].push(how);
+            } else
+                this[dest] = how;
+        }
+    }
+
+    call(what) {
+        var pars = Array.prototype.slice.call(arguments,1);
+        if(what) {
+            if(Array.isArray(what))
+                array.forEach(element => {
+                    element.apply(undefined,pars);
+                });
+            else
+                what.apply(undefined,pars);
+        }
     }
 
     /**
@@ -63,6 +92,9 @@ class dbfDocument {
             colInfo.tag = data.readInt8(idx+31);
             this.colInfos.push(colInfo);
         }
+        this.ready = true;
+        this.call(this.onReady, this)
     }
+
 }
 exports.dbfDocument = dbfDocument;
