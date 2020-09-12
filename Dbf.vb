@@ -30,9 +30,9 @@ Public Class Dbf
         Dim bReserved1 As UInt32 'offset from record begin in FP
         Dim bLen As Byte
         Dim bDec As Byte
-        Dim bFieldFlags As Byte ' 1-system column, 2-nullable, 4-binary 
-        Dim bCounter As UInt32 ' auto-increment counter 
-        Dim bStep As Byte ' auto-increment Step 
+        Dim bFieldFlags As Byte ' 1-system column, 2-nullable, 4-binary
+        Dim bCounter As UInt32 ' auto-increment counter
+        Dim bStep As Byte ' auto-increment Step
         ' spazio di 7
         Dim bHasTag As Byte
         ' calcolati

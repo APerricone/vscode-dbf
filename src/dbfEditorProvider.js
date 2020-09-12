@@ -82,6 +82,33 @@ class dbfEditorProvider
             headers.push(colInfo.name);
         }
         webviewPanel.webview.postMessage({ command: 'header', data: headers });
+        document.onRow =(idx,row) => {
+            var rowInfo = [];
+            for (let i = 0; i < row.length; i++) {
+                const val = row[i];
+                /** @type {dbfColInfo} */
+                const colInfo = document.colInfos[i];
+                switch (colInfo.type) {
+                    case "C":
+                        rowInfo.push(val)
+                        break;
+                    case "N":
+                        rowInfo.push(""+val)
+                        break;
+                    case "D":
+                    case "T":
+                    case "@":
+                        rowInfo.push(val.toLocaleString(vscode.env.language))
+                        break;
+                    default:
+                        rowInfo.push(val+"")
+                        break;
+                }
+
+            }
+            webviewPanel.webview.postMessage({ command: 'row', data: rowInfo });
+        }
+        document.readRows(1,Math.min(10,document.info.nRecord))
     }
 }
 
