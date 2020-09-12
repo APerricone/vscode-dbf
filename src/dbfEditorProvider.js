@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const path = require('path');
+const fs = require('fs');
 const { dbfDocument } = require("./dbfDocument");
 
 /**
@@ -7,6 +8,12 @@ const { dbfDocument } = require("./dbfDocument");
  */
 class dbfEditorProvider
 {
+    /**
+    * @param {vscode.ExtensionContext} context
+    */
+    constructor(context) {
+        this.context = context;
+    }
     /**
      *
      * @param {vscode.Uri} uri
@@ -26,15 +33,38 @@ class dbfEditorProvider
      */
     resolveCustomEditor(document, webviewPanel, token) {
         // fill webpanel with document info
-        if(document.ready) {
-            this.fillWebPanel(document,webviewPanel)
-        }
+        var src = path.join(this.context.extensionPath,"media","index.html");
+        webviewPanel.webview.options= {
+            enableScripts: true
+        };
+		// Receive message from the webview.
+		webviewPanel.webview.onDidReceiveMessage((m) => {
+            this.onMessage(m, document, webviewPanel);
+		});
         return new Promise((resolve,reject) => {
-            document.on("ready",() => {
-                this.fillWebPanel(document,webviewPanel);
+            fs.readFile(src, {"encoding": "utf-8"}, (err,data) => {
+                webviewPanel.webview.html = data;
                 resolve();
+                if(document.ready) {
+                    this.fillWebPanel(document,webviewPanel)
+                } else
+                    document.onReady = () => this.fillWebPanel(document,webviewPanel);
             });
-        })
+        });
+    }
+
+    onMessage(message, document, webviewPanel) {
+        switch (message.command) {
+            case "ready":
+                if(document.ready) {
+                    this.fillWebPanel(document,webviewPanel)
+                } else
+                    document.onReady = () => this.fillWebPanel(document,webviewPanel);
+                break;
+
+            default:
+                break;
+        }
     }
 
     /**
@@ -46,17 +76,12 @@ class dbfEditorProvider
         if(!document.ready) {
             throw "document not ready"
         }
-        var val = "<h1>"+path.basename(document.uri.path)+"</h1>";
-        for(var i=0;i<document.colInfos.length;i++) {
+        var headers = [];
+        for (let i = 0; i < document.colInfos.length; i++) {
             const colInfo = document.colInfos[i];
-            val+="<h2>"+colInfo.name+"</h2>"
-            val+="<p>"+colInfo.type+" "+colInfo.len
-            if(colInfo.type=="N") {
-                val+="."+colInfo.dec
-            }
-            val+="</p>"
+            headers.push(colInfo.name);
         }
-        webviewPanel.webview.html=val;
+        webviewPanel.webview.postMessage({ command: 'header', data: headers });
     }
 }
 

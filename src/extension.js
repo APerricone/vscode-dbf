@@ -25,7 +25,7 @@ function activate(context) {
 		vscode.window.showInformationMessage('Hello World from vscode-dbf!');
 	});
 
-	vscode.window.registerCustomEditorProvider("dbf-table",new dbfEditorProvider())
+	vscode.window.registerCustomEditorProvider("dbf-table",new dbfEditorProvider(context))
 
 	context.subscriptions.push(disposable);
 }

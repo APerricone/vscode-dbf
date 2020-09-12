@@ -15,35 +15,9 @@ class dbfDocument {
         this.info = {};
         var infoStream = fs.createReadStream(uri.fsPath, {start: 0, end: 32});
         infoStream.on("data",(data)=> this.setInfo(data) );
-        this.onReady = undefined;
+        this.onReady = () => {};
         this.ready = false;
-    }
-
-    on(what,how) {
-        var dest;
-        if(what=="ready") {
-            dest = "onReady";
-        }
-        if(dest) {
-            if(this[dest]) {
-                if(!Array.isArray(this[dest]))
-                    this[dest] = [this[dest]];
-                this[dest].push(how);
-            } else
-                this[dest] = how;
-        }
-    }
-
-    call(what) {
-        var pars = Array.prototype.slice.call(arguments,1);
-        if(what) {
-            if(Array.isArray(what))
-                array.forEach(element => {
-                    element.apply(undefined,pars);
-                });
-            else
-                what.apply(undefined,pars);
-        }
+        this.onRow = (id,row) => {};
     }
 
     /**
@@ -80,7 +54,7 @@ class dbfDocument {
         for(var colId=0;colId<nCol;colId++) {
             var colInfo = {};
             var idx = colId<<5;
-            colInfo.name = data.toString("ascii",idx,idx+10).trim();
+            colInfo.name = data.toString("ascii",idx,idx+10).trim().replace(/\0+/,"");
             colInfo.type= String.fromCharCode(data.readUInt8(idx+11));
             //12 // spazio di 4
             colInfo.len = data.readInt8(idx+16);
@@ -93,7 +67,12 @@ class dbfDocument {
             this.colInfos.push(colInfo);
         }
         this.ready = true;
-        this.call(this.onReady, this)
+        this.onReady(this);
+    }
+
+
+    readRow(start,end) {
+
     }
 
 }
