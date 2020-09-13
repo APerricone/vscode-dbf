@@ -9,6 +9,7 @@ body {
 }
 #table-cnt th,td {
     border: 1px solid var(--vscode-editor-lineHighlightBorder);
+    padding: 0.2em;
 }
 #table-cnt .noborder {
     border: none;

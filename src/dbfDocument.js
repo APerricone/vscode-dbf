@@ -111,7 +111,7 @@ class dbfDocument {
                 this.evalRow(idx,buff);
                 off+=this.info.recordLen;
                 idx++;
-                if(idx<end)
+                if(idx<=end)
                     fs.read(fd,recordBuff,0,this.info.recordLen,off,cb);
                 else
                     fs.close(fd);
