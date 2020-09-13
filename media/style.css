@@ -1,0 +1,28 @@
+body {
+    font-family: var(--vscode-editor-font-family);
+    font-weight: var(--vscode-editor-font-weight);
+    font-size: var(--vscode-editor-font-size);
+}
+
+#table-cnt table {
+    border-collapse: collapse;
+}
+#table-cnt th,td {
+    border: 1px solid var(--vscode-editor-lineHighlightBorder);
+}
+#table-cnt .noborder {
+    border: none;
+    background-color: transparent;
+}
+
+#table-cnt thead tr th {
+    background-color: var(--vscode-editor-symbolHighlightBackground);
+}
+
+#table-cnt tbody tr:nth-child(odd) {
+    background-color: var(--vscode-editor-inactiveSelectionBackground);
+}
+
+#table-cnt tbody>tr>td:nth-child(1) {
+    color: var(--vscode-editorLineNumber-foreground);
+}

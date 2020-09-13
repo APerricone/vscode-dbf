@@ -1,56 +1,20 @@
 <html>
     <head>
-        <style>
-            table,th,td {
-                border-collapse: collapse;
-                border: 1px solid;
-            }
-        </style>
-        <script>
-            window.addEventListener("message", ev => {
-                switch(ev.data.command) {
-                    case "header":
-                        header(ev.data.data);
-                        break;
-                    case "row":
-                        row(ev.data.data)
-                        break;
-                }
-            });
-            document.addEventListener("readystatechange", () => {
-                window.postMessage({"command": "readystatechange", "readyState": document.readyState});
-            });
-            function setRowElement(dest,data,type) {
-                for (let i = 0; i < data.length; i++) {
-                    var cell = document.createElement(type);
-                    cell.textContent = data[i];
-                    dest.appendChild(cell);
-                }
-            }
-            function header(data) {
-                var dest = document.getElementsByTagName("thead");
-                dest = dest[0].children[0];
-                setRowElement(dest,data,"th");
-                window.postMessage({"command": "headerDone"});
-            }
-            function row(data) {
-                var body = document.getElementsByTagName("tbody")[0];
-                var dest = document.createElement("tr");
-                setRowElement(dest,data,"td");
-                body.appendChild(dest);
-            }
-        </script>
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.cspSource};"/>
+        <link rel="stylesheet" href="${baseUri}/style.css">
+        <script src="${baseUri}/code.js"></script>
     </head>
     <body>
-<table>
-    <thead>
-        <tr>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-        </tr>
-    </tbody>
-</table>
+        <div id="table-cnt">
+            <table>
+                <thead><tr></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div id="info-cnt">
+
+        </div>
     </body>
 </html>
