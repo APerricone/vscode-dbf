@@ -11,9 +11,6 @@ window.addEventListener("message", ev => {
     }
 });
 
-window.document.addEventListener("readystatechange", () => {
-    window.postMessage({"command": "readystatechange", "readyState": document.readyState});
-});
 function setRowElement(dest,data,type, extra) {
     for (let i = 0; i < data.length; i++) {
         /** @type {HTMLElement} */

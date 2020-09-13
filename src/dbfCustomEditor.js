@@ -5,6 +5,9 @@ const fs = require('fs');
 const { time } = require('console');
 
 
+/**
+ * @extends vscode.CustomReadonlyEditorProvider
+ */
 class dbfCustomEditor {
 
     /**
@@ -16,6 +19,23 @@ class dbfCustomEditor {
         this.context = context;
         this.document = document;
         this.webviewPanel = webviewPanel;
+
+        this.webviewPanel.onDidChangeViewState((ev) => {
+            this.changedViewState(ev);
+        });
+    }
+
+    /**
+     *
+     * @param {vscode.WebviewPanelOnDidChangeViewStateEvent} ev
+     */
+    changedViewState(ev) {
+        if(this.webviewPanel.visible) {
+            if(this.document.ready) {
+                this.fillWebPanel();
+            } else
+                this.document.onReady = () => this.fillWebPanel();
+        }
     }
 
     setup() {
@@ -26,7 +46,7 @@ class dbfCustomEditor {
         };
 		// Receive message from the webview.
 		this.webviewPanel.webview.onDidReceiveMessage((m) => {
-            this.onMessage(m, this.document, this.webviewPanel);
+            this.onMessage(m);
 		});
         return new Promise((resolve,reject) => {
             fs.readFile(src, {"encoding": "utf-8"}, (err,data) => {
@@ -47,13 +67,6 @@ class dbfCustomEditor {
 
     onMessage(message) {
         switch (message.command) {
-            case "ready":
-                if(this.document.ready) {
-                    this.fillWebPanel()
-                } else
-                    this.document.onReady = () => this.fillWebPanel();
-                break;
-
             default:
                 break;
         }

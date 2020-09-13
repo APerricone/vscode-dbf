@@ -3,7 +3,7 @@ const { dbfDocument } = require("./dbfDocument");
 const { dbfCustomEditor } = require("./dbfCustomEditor");
 
 /**
- *@extends vscodde.CustomReadonlyEditorProvider
+ *@extends vscode.CustomReadonlyEditorProvider
  */
 class dbfEditorProvider
 {
