@@ -1,8 +1,7 @@
 const vscode = require('vscode');
-const { dbfDocument } = require("./dbfDocument");
+//const { dbfDocument } = require("./dbfDocument");
 const path = require('path');
 const fs = require('fs');
-const { time } = require('console');
 
 
 /**
@@ -29,7 +28,7 @@ class dbfCustomEditor {
      *
      * @param {vscode.WebviewPanelOnDidChangeViewStateEvent} ev
      */
-    changedViewState(ev) {
+    changedViewState(/*ev*/) {
         if(this.webviewPanel.visible) {
             if(this.document.ready) {
                 this.fillWebPanel();
@@ -48,6 +47,7 @@ class dbfCustomEditor {
 		this.webviewPanel.webview.onDidReceiveMessage((m) => {
             this.onMessage(m);
 		});
+        // eslint-disable-next-line no-unused-vars
         return new Promise((resolve,reject) => {
             fs.readFile(src, {"encoding": "utf-8"}, (err,data) => {
                 data = data.replace(/\$\{webview\.cspSource\}/g,this.webviewPanel.webview.cspSource)
@@ -76,7 +76,7 @@ class dbfCustomEditor {
         if(!this.document.ready) {
             throw "document not ready"
         }
-        this.webviewPanel.webview.postMessage({ command: 'info', data: this.document.info });
+        this.webviewPanel.webview.postMessage({ command: 'info', data: this.document.info, cols: this.document.colInfos });
         // write header
         this.webviewPanel.webview.postMessage({ command: 'header', data: this.document.colInfos });
         var dateOpt = { year: "numeric", month: "2-digit", day: "2-digit"};

@@ -1,15 +1,34 @@
+html {
+    height: 100%;
+}
+
 body {
     font-family: var(--vscode-editor-font-family);
     font-weight: var(--vscode-editor-font-weight);
     font-size: var(--vscode-editor-font-size);
+    height: 100%;
+}
+
+#table-cnt {
+    width: 80%;
+    height: 98%;
+    display: inline-block;
+    overflow: scroll scroll;
+}
+
+#info-cnt {
+    width: 19%;
+    display: inline-block;
+    vertical-align: top;
 }
 
 #table-cnt table {
     border-collapse: collapse;
 }
-#table-cnt th,td {
+#table-cnt th,#table-cnt td {
     border: 1px solid var(--vscode-editor-lineHighlightBorder);
     padding: 0.2em;
+    white-space: pre;
 }
 #table-cnt .noborder {
     border: none;
@@ -27,3 +46,15 @@ body {
 #table-cnt tbody>tr>td:nth-child(1) {
     color: var(--vscode-editorLineNumber-foreground);
 }
+
+#table-cnt .empty td:nth-child(2) {
+    background: linear-gradient(90deg, transparent 49%, var(--vscode-progressBar-background) 49%, var(--vscode-progressBar-background) 52%, transparent 52%);
+    animation: loading 10s linear infinite;
+    background-size: 200% 1px;
+
+}
+
+@keyframes loading {
+    0%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}//*/

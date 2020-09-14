@@ -1,3 +1,5 @@
+/* eslint-env browser */
+
 window.addEventListener("message", ev => {
     switch(ev.data.command) {
         case "header":
@@ -7,7 +9,7 @@ window.addEventListener("message", ev => {
             row(ev.data.recno, ev.data.data, ev.data.deleted, ev.data.cols)
             break;
         case "info":
-            info(ev.data.data);
+            info(ev.data.data,ev.data.cols);
     }
 });
 
@@ -33,49 +35,82 @@ function header(data) {
     setRowElement(dest,data,"th", (cell,id) => {
         cell.textContent = data[id].name;
         cell.title = data[id].name;
-        cell.style = `width: ${data[id].len}ch; `
+        cell.style.width = cell.style.maxWidth = cell.style.minWidth = data[id].len+"ch";
+        cell.style.overflow = "hidden";
+        //`width: ${data[id].len}ch; max-width: ${data[id].len}ch; `
         switch(data[id].type) {
             case "D":
-                cell.style = "width: 10ch;"
+                cell.style.width = cell.style.maxWidth = cell.style.minWidth = "10ch";
                 break;
             case "T":
-                cell.style = "width: 8ch;"
+                cell.style.width = cell.style.maxWidth = cell.style.minWidth = "8ch";
                 break;
             case "@":
-                cell.style = "width: 22ch;"
+                cell.style.width = cell.style.maxWidth = cell.style.minWidth = "22ch";
                 break;
             }
     });
     window.postMessage({"command": "headerDone"});
 }
 
-function row(idx,data,deleted, colInfo) {
-    var body = document.getElementsByTagName("tbody")[0];
-    var dest = document.createElement("tr");
-    var cell = document.createElement("td");
-    cell.textContent = idx;
-    dest.appendChild(cell);
-    setRowElement(dest,data,"td",(cell,id) => {
-        var st = "";
+function addCols(dest,colInfo) {
+    dest.removeChild(dest.children[1]); //empty colspan cell
+    for (let id = 0; id < colInfo.length; id++) {
+        /** @type {HTMLElement} */
+        var cell = document.createElement("td");
         switch(colInfo[id].type) {
-            case "N":
-                st = "text-align: right;"
+            case "C":
+                cell.style.whiteSpace = "pre";
                 break;
-        }
-        if(deleted)
-            st += "text-decoration: line-through;"
-        cell.style = st;
-    });
-    body.appendChild(dest);
+            case "N":
+                cell.style.textAlign = "right"
+                break;
+            }
+        dest.appendChild(cell);
+    }
 }
 
-function info(data) {
+function row(idx,data,deleted, colInfo) {
+    var dest = document.getElementById("recNo"+idx);
+    if(!dest) return;
+    if(dest.className.indexOf("empty")>=0) {
+        dest.className = dest.className.replace("empty","");
+        addCols(dest,colInfo);
+    }
+    for (let id = 0; id < data.length; id++) {
+        dest.children[id+1].textContent = data[id];
+    }
+}
+
+function info(data, cols) {
     var dest = document.getElementById("info-cnt");
     var txt = "<h1>DBF Informations</h1>";
-    for (const key in data) {
-        if (data.hasOwnProperty(key)) {
-            txt+=`<p><b>${key}:</b> ${data[key]}</p>`
-        }
+    txt+=`<p><b>version:</b> ${data.version}</p>`
+    txt+=`<p><b>last modified date:</b> ${data.year+1900}-${data.month}-${data.day}</p>`
+    txt+=`<p><b># records:</b> ${data.nRecord}</p>`
+    txt+= "<h2>Columns</h2>";
+    for (let i = 0; i < cols.length; i++) {
+        const colInfo = cols[i];
+        if(colInfo.type=="N")
+            txt+=`<p><b>${colInfo.name}</b>(${colInfo.type}:${colInfo.len}.${colInfo.dec})</p>`
+        else
+            txt+=`<p><b>${colInfo.name}</b>(${colInfo.type}:${colInfo.len})</p>`
     }
     dest.innerHTML = txt;
+
+    var body = document.getElementsByTagName("tbody")[0];
+    body.innerHTML="";
+    for(let i=0;i<data.nRecord;i++) {
+        var dest = document.createElement("tr");
+        dest.id = "recNo"+(i+1);
+        dest.className="empty";
+        var cell = document.createElement("td");
+        cell.textContent = (i+1)+"";
+        cell.style.textAlign = "right"
+        dest.appendChild(cell);
+        cell = document.createElement("td");
+        cell.colSpan = cols.length;
+        dest.appendChild(cell);
+        body.appendChild(dest);
+    }
 }

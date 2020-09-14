@@ -1,4 +1,4 @@
-const vscode = require('vscode');
+//const vscode = require('vscode');
 const fs = require('fs');
 
 /**
@@ -42,6 +42,7 @@ class dbfDocument {
         if(uri.scheme != "file") return;
         this.onReady = () => {};
         this.ready = false;
+        // eslint-disable-next-line no-unused-vars
         this.onRow = (row) => {};
         this.readHeader();
     }
