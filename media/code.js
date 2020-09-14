@@ -1,10 +1,9 @@
 /* eslint-env browser */
 
+const vscode = acquireVsCodeApi();
+
 window.addEventListener("message", ev => {
     switch(ev.data.command) {
-        case "header":
-            header(ev.data.data, ev.data.lens);
-            break;
         case "row":
             row(ev.data.recno, ev.data.data, ev.data.deleted, ev.data.cols)
             break;
@@ -50,7 +49,6 @@ function header(data) {
                 break;
             }
     });
-    window.postMessage({"command": "headerDone"});
 }
 
 function addCols(dest,colInfo) {
@@ -82,7 +80,17 @@ function row(idx,data,deleted, colInfo) {
     }
 }
 
+function onScroll() {
+    var h1 = document.getElementsByTagName("body")[0].clientHeight
+    var h2 = document.getElementById("recNo1").clientHeight
+    var nRows = Math.ceil(h1/h2);
+    var tableCnt = document.getElementById("table-cnt");
+    var firstPos = Math.floor(tableCnt.scrollTop / h2);
+    vscode.postMessage({"command": "rows", "min":firstPos, "max": firstPos+nRows});
+}
+
 function info(data, cols) {
+    // set up information on right
     var dest = document.getElementById("info-cnt");
     var txt = "<h1>DBF Informations</h1>";
     txt+=`<p><b>version:</b> ${data.version}</p>`
@@ -97,7 +105,9 @@ function info(data, cols) {
             txt+=`<p><b>${colInfo.name}</b>(${colInfo.type}:${colInfo.len})</p>`
     }
     dest.innerHTML = txt;
-
+    // set up columns
+    header(cols);
+    // setup empty rows
     var body = document.getElementsByTagName("tbody")[0];
     body.innerHTML="";
     for(let i=0;i<data.nRecord;i++) {
@@ -113,4 +123,12 @@ function info(data, cols) {
         dest.appendChild(cell);
         body.appendChild(dest);
     }
+    // setup scrolling
+    var tableCnt = document.getElementById("table-cnt");
+    var timeOut;
+    tableCnt.onscroll = () => {
+        if(timeOut) clearTimeout(timeOut);
+        timeOut=setTimeout(onScroll, 100);
+    };
+    timeOut=setTimeout(onScroll, 100);
 }

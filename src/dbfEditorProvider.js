@@ -5,8 +5,7 @@ const { dbfCustomEditor } = require("./dbfCustomEditor");
 /**
  *@extends vscode.CustomReadonlyEditorProvider
  */
-class dbfEditorProvider
-{
+class dbfEditorProvider {
     /**
     * @param {vscode.ExtensionContext} context
     */
