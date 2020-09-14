@@ -9,7 +9,11 @@ window.addEventListener("message", ev => {
             break;
         case "info":
             info(ev.data.data,ev.data.cols);
-    }
+            break;
+        case "goto":
+            goto(ev.data.data);
+            break;
+        }
 });
 
 function setRowElement(dest,data,type, extra) {
@@ -69,12 +73,18 @@ function addCols(dest,colInfo) {
 }
 
 function row(idx,data,deleted, colInfo) {
-    var dest = document.getElementById("recNo"+idx);
+    var h2 = document.getElementById("row1").clientHeight
+    var tableCnt = document.getElementById("table-cnt");
+    tableCnt.children[0].style.top=tableCnt.scrollTop+"px";
+    var firstPos = Math.max(1,Math.floor(tableCnt.scrollTop / h2));
+    var id = idx-firstPos;
+    var dest = document.getElementById("row"+id);
     if(!dest) return;
     if(dest.className.indexOf("empty")>=0) {
         dest.className = dest.className.replace("empty","");
         addCols(dest,colInfo);
     }
+    dest.children[0].textContent = idx+"";
     for (let id = 0; id < data.length; id++) {
         dest.children[id+1].textContent = data[id];
     }
@@ -82,10 +92,10 @@ function row(idx,data,deleted, colInfo) {
 
 function onScroll() {
     var h1 = document.getElementsByTagName("body")[0].clientHeight
-    var h2 = document.getElementById("recNo1").clientHeight
+    var h2 = document.getElementById("row1").clientHeight
     var nRows = Math.ceil(h1/h2);
     var tableCnt = document.getElementById("table-cnt");
-    var firstPos = Math.floor(tableCnt.scrollTop / h2);
+    var firstPos = Math.max(1,Math.floor(tableCnt.scrollTop / h2));
     vscode.postMessage({"command": "rows", "min":firstPos, "max": firstPos+nRows});
 }
 
@@ -110,9 +120,13 @@ function info(data, cols) {
     // setup empty rows
     var body = document.getElementsByTagName("tbody")[0];
     body.innerHTML="";
-    for(let i=0;i<data.nRecord;i++) {
+    var h1 = document.getElementsByTagName("body")[0].clientHeight
+    var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;
+    var nLine = Math.min(Math.ceil(h1/h2)-2,data.nRecord);
+    document.getElementById("empty-scroll").style.height = (h2*data.nRecord)+"px";
+    for(let i=0;i<nLine;i++) {
         var dest = document.createElement("tr");
-        dest.id = "recNo"+(i+1);
+        dest.id = "row"+(i+1);
         dest.className="empty";
         var cell = document.createElement("td");
         cell.textContent = (i+1)+"";
@@ -127,8 +141,18 @@ function info(data, cols) {
     var tableCnt = document.getElementById("table-cnt");
     var timeOut;
     tableCnt.onscroll = () => {
+        tableCnt.children[0].style.top=tableCnt.scrollTop+"px";
         if(timeOut) clearTimeout(timeOut);
         timeOut=setTimeout(onScroll, 100);
     };
     timeOut=setTimeout(onScroll, 100);
+}
+
+function goto(line) {
+    var h1 = document.getElementsByTagName("body")[0].clientHeight
+    var h2 = document.getElementById("row1").clientHeight
+    var tableCnt = document.getElementById("table-cnt");
+    tableCnt.scrollTop = line*h2 - h1/2;
+    onScroll();
+
 }

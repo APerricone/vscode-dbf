@@ -1,7 +1,8 @@
 {
 	"name": "vscode-dbf",
-	"displayName": "vscode-dbf",
-	"description": "DBF viewer for VSCode",
+	"displayName": "DBF viewer",
+    "publisher": "aperricone",
+	"description": "DBF table viewer for VSCode",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.48.0"
@@ -11,14 +12,15 @@
 	],
 	"activationEvents": [
 		"onCustomEditor:dbf-table",
-		"onCommand:vscode-dbf.helloWorld"
+		"onCommand:vscode-dbf.goto"
 	],
 	"main": "./src/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "vscode-dbf.helloWorld",
-				"title": "Hello World"
+				"command": "vscode-dbf.goto",
+				"title": "DBF - Go to recno..",
+				"enablement": "customEditor == dbf-table"
 			}
 		],
 		"customEditors": [

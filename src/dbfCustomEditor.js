@@ -3,7 +3,7 @@ const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
 
-
+var dbfCurrentEditor;
 /**
  * @extends vscode.CustomReadonlyEditorProvider
  */
@@ -22,6 +22,14 @@ class dbfCustomEditor {
         this.webviewPanel.onDidChangeViewState((ev) => {
             this.changedViewState(ev);
         });
+        dbfCurrentEditor = this;
+    }
+
+    /**
+     * @returns {dbfCustomEditor}
+     */
+    static getCurrentEditor() {
+        return dbfCurrentEditor;
     }
 
     /**
@@ -29,11 +37,15 @@ class dbfCustomEditor {
      * @param {vscode.WebviewPanelOnDidChangeViewStateEvent} ev
      */
     changedViewState(/*ev*/) {
-        if(this.webviewPanel.visible) {
+        if(this.webviewPanel.visible && dbfCurrentEditor != this) {
+            dbfCurrentEditor = this;
             if(this.document.ready) {
                 this.fillWebPanel();
             } else
                 this.document.onReady = () => this.fillWebPanel();
+        } else {
+            if(dbfCurrentEditor==this)
+                dbfCurrentEditor = undefined;
         }
     }
 
@@ -108,6 +120,10 @@ class dbfCustomEditor {
             }
             this.webviewPanel.webview.postMessage({ command: 'row', data: rowInfo, recno: row.recNo, deleted: row.deleted, cols: this.document.colInfos });
         }
+    }
+
+    goto(val) {
+        this.webviewPanel.webview.postMessage({ command: 'goto', data: val });
     }
 };
 

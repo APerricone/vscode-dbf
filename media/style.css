@@ -10,20 +10,36 @@ body {
 }
 
 #table-cnt {
-    width: 80%;
+    width: 78%;
     height: 98%;
     display: inline-block;
-    overflow: scroll scroll;
+    overflow-x: scroll;
+    overflow-y: scroll;
+    position: relative;
+}
+#empty-scroll {
+    width: 1%;
+    display: inline-block;
+    position: absolute;
+    top: 0;
 }
 
 #info-cnt {
-    width: 19%;
-    display: inline-block;
-    vertical-align: top;
+    width: 18%;
+    float: right;
+    height: 98%;
+    display: block;
+    overflow-y: scroll;
+}
+
+#info-cnt p {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
 }
 
 #table-cnt table {
     border-collapse: collapse;
+    position: absolute;
 }
 #table-cnt th,#table-cnt td {
     border: 1px solid var(--vscode-editor-lineHighlightBorder);
