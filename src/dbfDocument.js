@@ -139,7 +139,10 @@ class dbfDocument {
                     ret.push(str);
                     break;
                 case "N":
-                    ret.push(parseFloat(str));
+                    if(str.trim().length==0)
+                        ret.push(0);
+                    else
+                        ret.push(parseFloat(str));
                     break;
                 case "L":
                     ret.push(str =='T');
