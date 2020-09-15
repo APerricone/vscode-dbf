@@ -173,7 +173,7 @@ function askRows() {
     var min=dbfInfo.nRecord, max = 1;
     for(let i=0;i<nRows;i++) {
         var dest = document.getElementById("row"+(i+1));
-        if(dest.classList.contains("empty")) {
+        if(dest && dest.classList.contains("empty")) {
             var n = (i+1+firstPos);
             if(min>n) min=n;
             if(max<n) max=n;
@@ -191,7 +191,7 @@ function onScroll() {
     var h2 = document.getElementById("row1").clientHeight;
 
     var maxTop = ((dbfInfo.nRecord+3)*h2)-h1;
-    tableCnt.children[0].style.top=Math.min(maxTop,tableCnt.scrollTop)+"px";
+    tableCnt.children[0].style.top=Math.max(0,Math.min(maxTop,tableCnt.scrollTop))+"px";
 
     var nRows = Math.floor(h1/h2)-2;
     var firstPos = Math.floor(tableCnt.scrollTop / h2);
@@ -212,9 +212,11 @@ function onScroll() {
     }
     for(let i=minEmpty;i<maxEmpty;i++) {
         var dest = document.getElementById("row"+(i+1));
-        dest.classList.remove("filled");
-        dest.classList.add("empty");
-        dest.children[0].textContent = (i+1+firstPos)+"";
+        if(dest) {
+            dest.classList.remove("filled");
+            dest.classList.add("empty");
+            dest.children[0].textContent = (i+1+firstPos)+"";
+        }
     }
     if(scrollTimeout) clearTimeout(scrollTimeout);
     scrollTimeout=setTimeout(askRows, 100);
