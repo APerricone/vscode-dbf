@@ -118,7 +118,7 @@ class dbfCustomEditor {
                 }
 
             }
-            this.webviewPanel.webview.postMessage({ command: 'row', data: rowInfo, recno: row.recNo, deleted: row.deleted, cols: this.document.colInfos });
+            this.webviewPanel.webview.postMessage({ command: 'row', data: rowInfo, recno: row.recNo, deleted: row.deleted });
         }
     }
 

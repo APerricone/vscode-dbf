@@ -9,6 +9,10 @@ body {
     height: 100%;
 }
 
+.cCol { color: var(--vscode-debugTokenExpression-string); }
+.nCol { color: var(--vscode-debugTokenExpression-number); }
+.lCol { color: var(--vscode-debugTokenExpression-boolean); }
+
 #table-cnt {
     width: 78%;
     height: 98%;
@@ -63,11 +67,23 @@ body {
     color: var(--vscode-editorLineNumber-foreground);
 }
 
-#table-cnt .empty td:nth-child(2) {
+#table-cnt .filled td.loading {
+    display: none;
+}
+
+#table-cnt .empty td.loading {
     background: linear-gradient(90deg, transparent 49%, var(--vscode-progressBar-background) 49%, var(--vscode-progressBar-background) 52%, transparent 52%);
     animation: loading 10s linear infinite;
     background-size: 200% 1px;
 
+}
+
+#table-cnt .empty td:nth-child(n+3) {
+    display: none;
+}
+
+#table-cnt .deleted td:nth-child(n+3) {
+    text-decoration: line-through;
 }
 
 @keyframes loading {
