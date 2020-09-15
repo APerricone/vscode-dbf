@@ -17,9 +17,12 @@ function activate(context) {
 		var editor = dbfCustomEditor.getCurrentEditor();
 
 		vscode.window.showInputBox({
-			"prompt": `Type a record number between 1 and ${editor.document.info.nRecord}`
+			"prompt": `Type a record number between 1 and ${editor.document.info.nRecord}`,
+			"valueSelection": [1,editor.document.info.nRecord+1]
 		}).then((val)=>{
-			editor.goto(val);
+			if(typeof(val)=="string") val=parseInt(val);
+			if(typeof(val)=="number") editor.goto(val);
+
 		})
 	});
 	context.subscriptions.push(disposable);
