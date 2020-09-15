@@ -2,6 +2,7 @@
 const vscode = acquireVsCodeApi();
 
 var dbfInfo, dbfCols;
+var selRow=1, selCol=1;
 
 window.addEventListener("message", ev => {
     switch(ev.data.command) {
@@ -18,7 +19,6 @@ window.addEventListener("message", ev => {
             break;
         }
 });
-
 
 function info() {
     // set up information on right
@@ -125,17 +125,21 @@ function row(idx,data,deleted) {
     var id = idx-firstPos;
     var dest = document.getElementById("row"+(id));
     if(!dest) return;
-    if(dest.className.indexOf("empty")>=0) {
-        dest.className = dest.className.replace("empty","filled");
+    if(dest.classList.contains("empty")) {
+        dest.classList.remove("empty");
+        dest.classList.add("filled");
     }
     if(deleted) {
-        if(dest.className.indexOf("deleted")<0)
-            dest.className = dest.className.trim() + " deleted";
+        dest.classList.add("deleted");
     } else {
-        dest.className = dest.className.replace("deleted","");
+        dest.classList.remove("deleted");
     }
     dest.children[0].textContent = idx+"";
     for (let id = 0; id < data.length; id++) {
+        if(idx==selRow && (id+1)==selCol) {
+            dest.children[id+2].classList.add("selected");
+        } else
+            dest.children[id+2].classList.remove("selected");
         dest.children[id+2].textContent = data[id];
     }
 }
@@ -146,14 +150,14 @@ function copyRow(destId, srcId) {
     var src = document.getElementById("row"+(srcId+1));
     if((!dest) || (!src)) return;
     //if(src.className.indexOf("empty")>=0) return;
-    if(dest.className.indexOf("empty")>=0) {
-        dest.className = dest.className.replace("empty","filled");
+    if(dest.classList.contains("empty")) {
+        dest.classList.remove("empty");
+        dest.classList.add("filled");
     }
-    if(src.className.indexOf("deleted")>=0) {
-        if(dest.className.indexOf("deleted")<0)
-            dest.className = dest.className.trim() + " deleted";
+    if(src.classList.contains("deleted")) {
+        dest.classList.add("deleted");
     } else {
-        dest.className = dest.className.replace("deleted","");
+        dest.classList.remove("deleted");
     }
     for (let id = 0; id < dest.children.length; id++) {
         dest.children[id].textContent = src.children[id].textContent;
@@ -170,7 +174,7 @@ function askRows() {
     var min=dbfInfo.nRecord, max = 1;
     for(let i=0;i<nRows;i++) {
         var dest = document.getElementById("row"+(i+1));
-        if(dest.className.indexOf("empty")>=0) {
+        if(dest.classList.contains("empty")) {
             var n = (i+1+firstPos);
             if(min>n) min=n;
             if(max<n) max=n;
@@ -179,7 +183,7 @@ function askRows() {
     vscode.postMessage({"command": "rows", "min":min, "max": max});
 }
 
-var scrollTimeout, lastTop = -10000;
+var scrollTimeout, lastTop = -1;
 function onScroll() {
     var tableCnt = document.getElementById("table-cnt");
     if(tableCnt.scrollTop==lastTop)
@@ -197,7 +201,8 @@ function onScroll() {
     lastTop = tableCnt.scrollTop;
     for(let i=0;i<nRows;i++) {
         var dest = document.getElementById("row"+(i+1));
-        dest.className = dest.className.replace("filled","empty")
+        dest.classList.remove("filled");
+        dest.classList.add("empty");
         dest.children[0].textContent = (i+1+firstPos)+"";
     }
 

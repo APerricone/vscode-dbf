@@ -90,3 +90,7 @@ body {
     0%{background-position:100% 50%}
     100%{background-position:0% 50%}
 }
+
+.selection {
+    background-color: var(--vscode-editor-selectionBackground);
+}
