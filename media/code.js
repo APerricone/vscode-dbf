@@ -125,10 +125,8 @@ function row(idx,data,deleted) {
     var id = idx-firstPos;
     var dest = document.getElementById("row"+(id));
     if(!dest) return;
-    if(dest.classList.contains("empty")) {
-        dest.classList.remove("empty");
-        dest.classList.add("filled");
-    }
+    dest.classList.remove("empty");
+    dest.classList.add("filled");
     if(deleted) {
         dest.classList.add("deleted");
     } else {
@@ -149,20 +147,21 @@ function copyRow(destId, srcId) {
     var dest = document.getElementById("row"+(destId+1));
     var src = document.getElementById("row"+(srcId+1));
     if((!dest) || (!src)) return;
-    //if(src.className.indexOf("empty")>=0) return;
-    if(dest.classList.contains("empty")) {
-        dest.classList.remove("empty");
-        dest.classList.add("filled");
+    if(src.classList.contains("empty")) {
+        dest.classList.add("empty");
+        dest.classList.remove("filled");
+        return;
     }
+    dest.classList.remove("empty");
+    dest.classList.add("filled");
     if(src.classList.contains("deleted")) {
         dest.classList.add("deleted");
     } else {
         dest.classList.remove("deleted");
     }
-    for (let id = 0; id < dest.children.length; id++) {
+    for (let id = 1; id < dest.children.length; id++) {
         dest.children[id].textContent = src.children[id].textContent;
     }
-
 }
 
 function askRows() {
@@ -183,13 +182,13 @@ function askRows() {
     vscode.postMessage({"command": "rows", "min":min, "max": max});
 }
 
-var scrollTimeout, lastTop = -1;
+var scrollTimeout, lastTop = -10000;
 function onScroll() {
     var tableCnt = document.getElementById("table-cnt");
     if(tableCnt.scrollTop==lastTop)
         return;
     var h1 = document.getElementsByTagName("body")[0].clientHeight
-    var h2 = document.getElementById("row1").clientHeight
+    var h2 = document.getElementById("row1").clientHeight;
 
     var maxTop = ((dbfInfo.nRecord+3)*h2)-h1;
     tableCnt.children[0].style.top=Math.min(maxTop,tableCnt.scrollTop)+"px";
@@ -199,20 +198,23 @@ function onScroll() {
     var oldFirst = Math.floor(lastTop / h2);
     if(oldFirst==firstPos) return;
     lastTop = tableCnt.scrollTop;
-    for(let i=0;i<nRows;i++) {
+    var minEmpty = 0, maxEmpty = nRows;
+    if(firstPos==3)
+        firstPos=firstPos;
+    if(oldFirst<firstPos && oldFirst>firstPos-nRows) {
+        var delta = firstPos - oldFirst;
+        for(let i=0;i<nRows-delta;i++) copyRow(i, i+delta)
+        minEmpty=nRows-delta;
+    } else if(oldFirst>firstPos && oldFirst<firstPos+nRows) {
+        var delta = oldFirst - firstPos;
+        for(let i=nRows-1;i>=delta;i--) copyRow(i, i-delta)
+        maxEmpty=delta;
+    }
+    for(let i=minEmpty;i<maxEmpty;i++) {
         var dest = document.getElementById("row"+(i+1));
         dest.classList.remove("filled");
         dest.classList.add("empty");
         dest.children[0].textContent = (i+1+firstPos)+"";
-    }
-
-    if(oldFirst<firstPos && oldFirst>firstPos-nRows) {
-        var delta = firstPos - oldFirst;
-        for(let i=0;i<nRows-delta;i++) copyRow(i, i+delta)
-    }
-    if(oldFirst>firstPos && oldFirst<firstPos+nRows) {
-        var delta = oldFirst - firstPos;
-        for(let i=nRows-1;i>=delta;i--) copyRow(i, i-delta)
     }
     if(scrollTimeout) clearTimeout(scrollTimeout);
     scrollTimeout=setTimeout(askRows, 100);

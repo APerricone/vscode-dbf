@@ -70,7 +70,7 @@ class dbfCustomEditor {
                 this.webviewPanel.webview.html = data;
                 resolve();
                 if(this.document.ready) {
-                    this.fillWebPanel();
+                    setTimeout(() => this.fillWebPanel(),100);
                 } else
                     this.document.onReady = () => this.fillWebPanel();
             });
