@@ -1,7 +1,10 @@
 {
 	"name": "vscode-dbf",
 	"displayName": "DBF viewer",
-    "publisher": "aperricone",
+	"publisher": "aperricone",
+	"repository": {
+        "url": "https://github.com/APerricone/vscode-dbf"
+    },
 	"description": "DBF table viewer for VSCode",
 	"version": "0.0.1",
 	"engines": {
