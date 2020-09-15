@@ -1,7 +1,7 @@
 /* eslint-env browser */
 const vscode = acquireVsCodeApi();
 
-var dbfInfo, dbfCols;
+var dbfInfo, dbfCols, totalRows;
 var selRow=1, selCol=1;
 
 window.addEventListener("message", ev => {
@@ -42,7 +42,8 @@ function info() {
     setupRows(dbfCols,dbfInfo);
     // setup scrolling
     var tableCnt = document.getElementById("table-cnt");
-    tableCnt.onscroll = onScroll
+    tableCnt.onscroll = onScroll;
+    window.onresize = onScroll;
     onScroll();
 }
 
@@ -79,11 +80,11 @@ function header(data) {
 function setupRows() {
     var body = document.getElementsByTagName("tbody")[0];
     body.innerHTML="";
-    var h1 = document.getElementsByTagName("body")[0].clientHeight
+    var h1 = screen.height //document.getElementsByTagName("body")[0].clientHeight
     var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;;
-    var nLine = Math.min(Math.floor(h1/h2)-2,dbfInfo.nRecord);
+    totalRows = Math.floor(h1/h2)-1;
     document.getElementById("empty-scroll").style.height = (h2*(dbfInfo.nRecord+2)).toFixed(0)+"px";
-    for(let i=0;i<nLine;i++) {
+    for(let i=0;i<totalRows;i++) {
         var dest = document.createElement("tr");
         dest.id = "row"+(i+1);
         dest.className="empty";
@@ -115,6 +116,10 @@ function setupRows() {
         }
         body.appendChild(dest);
     }
+    h1=document.getElementsByTagName("body")[0].clientHeight
+
+    vscode.postMessage({"command": "rows", "min":1, "max": Math.floor(h1/h2)-1});
+
 }
 
 
@@ -159,67 +164,67 @@ function copyRow(destId, srcId) {
     } else {
         dest.classList.remove("deleted");
     }
-    for (let id = 1; id < dest.children.length; id++) {
+    for (let id = 0; id < dest.children.length; id++) {
         dest.children[id].textContent = src.children[id].textContent;
     }
 }
 
-function askRows() {
-    var h1 = document.getElementsByTagName("body")[0].clientHeight
-    var h2 = document.getElementById("row1").clientHeight
-    var nRows = Math.floor(h1/h2)-2;
-    var tableCnt = document.getElementById("table-cnt");
-    var firstPos = Math.floor(tableCnt.scrollTop / h2);
-    var min=dbfInfo.nRecord, max = 1;
-    for(let i=0;i<nRows;i++) {
-        var dest = document.getElementById("row"+(i+1));
-        if(dest && dest.classList.contains("empty")) {
-            var n = (i+1+firstPos);
-            if(min>n) min=n;
-            if(max<n) max=n;
-        }
-    }
-    vscode.postMessage({"command": "rows", "min":min, "max": max});
-}
-
-var scrollTimeout, lastTop = -10000;
+var lastTop = -10000;
 function onScroll() {
     var tableCnt = document.getElementById("table-cnt");
-    if(tableCnt.scrollTop==lastTop)
-        return;
+    //if(tableCnt.scrollTop==lastTop)
+    //    return;
     var h1 = document.getElementsByTagName("body")[0].clientHeight
     var h2 = document.getElementById("row1").clientHeight;
+    var nRows = Math.floor(h1/h2)-1;
 
     var maxTop = ((dbfInfo.nRecord+3)*h2)-h1;
     tableCnt.children[0].style.top=Math.max(0,Math.min(maxTop,tableCnt.scrollTop))+"px";
 
-    var nRows = Math.floor(h1/h2)-2;
     var firstPos = Math.floor(tableCnt.scrollTop / h2);
-    var oldFirst = Math.floor(lastTop / h2);
-    if(oldFirst==firstPos) return;
-    lastTop = tableCnt.scrollTop;
-    var minEmpty = 0, maxEmpty = nRows;
-    if(firstPos==3)
-        firstPos=firstPos;
-    if(oldFirst<firstPos && oldFirst>firstPos-nRows) {
-        var delta = firstPos - oldFirst;
-        for(let i=0;i<nRows-delta;i++) copyRow(i, i+delta)
-        minEmpty=nRows-delta;
-    } else if(oldFirst>firstPos && oldFirst<firstPos+nRows) {
-        var delta = oldFirst - firstPos;
-        for(let i=nRows-1;i>=delta;i--) copyRow(i, i-delta)
-        maxEmpty=delta;
-    }
-    for(let i=minEmpty;i<maxEmpty;i++) {
+    for(let i=0;i<totalRows;i++) {
         var dest = document.getElementById("row"+(i+1));
         if(dest) {
-            dest.classList.remove("filled");
-            dest.classList.add("empty");
-            dest.children[0].textContent = (i+1+firstPos)+"";
+            var n = (i+1+firstPos);
+            if(n>dbfInfo.nRecord || i>=nRows) {
+                dest.style.display = "none";
+                dest.classList.add("empty");
+                dest.classList.remove("filled");
+            } else {
+                dest.style.display = "table-row";
+                if(dest.classList.contains("empty"))
+                    vscode.postMessage({"command": "rows", "min":n, "max": n});
+            }
         }
     }
-    if(scrollTimeout) clearTimeout(scrollTimeout);
-    scrollTimeout=setTimeout(askRows, 100);
+
+    var oldFirst = Math.floor(lastTop / h2);
+    lastTop = tableCnt.scrollTop;
+    if(oldFirst!=firstPos) {
+        var minEmpty = 0, maxEmpty = nRows;
+        if(firstPos==3)
+            firstPos=firstPos;
+        if(oldFirst<firstPos && oldFirst>firstPos-nRows) {
+            var delta = firstPos - oldFirst;
+            for(let i=0;i<nRows-delta;i++) copyRow(i, i+delta)
+            minEmpty=nRows-delta;
+        } else if(oldFirst>firstPos && oldFirst<firstPos+nRows) {
+            var delta = oldFirst - firstPos;
+            for(let i=nRows-1;i>=delta;i--) copyRow(i, i-delta)
+            maxEmpty=delta;
+        }
+        for(let i=minEmpty;i<maxEmpty;i++) {
+            var dest = document.getElementById("row"+(i+1));
+            if(dest) {
+                dest.classList.remove("filled");
+                dest.classList.add("empty");
+                dest.children[0].textContent = (i+1+firstPos)+"";
+            }
+        }
+        if(minEmpty<=maxEmpty)
+            vscode.postMessage({"command": "rows", "min":(minEmpty+1+firstPos), "max": (maxEmpty+1+firstPos)});
+
+    }
 }
 
 function goto(line) {
