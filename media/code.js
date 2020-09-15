@@ -131,7 +131,7 @@ function askRows() {
     vscode.postMessage({"command": "rows", "min":Math.max(1,firstPos), "max": firstPos+nRows});
 }
 
-var scrollTimeout, lastTop = 0;
+var scrollTimeout, lastTop = -1;
 function onScroll() {
     var tableCnt = document.getElementById("table-cnt");
     if(tableCnt.scrollTop==lastTop)
