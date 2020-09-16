@@ -69,10 +69,6 @@ class dbfCustomEditor {
                 ))
                 this.webviewPanel.webview.html = data;
                 resolve();
-                if(this.document.ready) {
-                    setTimeout(() => this.fillWebPanel(),100);
-                } else
-                    this.document.onReady = () => this.fillWebPanel();
             });
         });
 
@@ -80,6 +76,12 @@ class dbfCustomEditor {
 
     onMessage(message) {
         switch (message.command) {
+            case "ready":
+                if(this.document.ready) {
+                    this.fillWebPanel();
+                } else
+                    this.document.onReady = () => this.fillWebPanel();
+                break;
             case "rows":
                 this.document.readRows(message.min,Math.min(message.max,this.document.info.nRecord));
                 break;

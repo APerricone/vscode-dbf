@@ -7,6 +7,8 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 ## [0.0.3]
  - added support for resizing
  - minimal selection support
+ - removed timeout on scroll
+ - solved some cases of empty view
 
 ## [0.0.2]
  - fixed little table visualization

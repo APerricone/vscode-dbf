@@ -20,6 +20,11 @@ window.addEventListener("message", ev => {
         }
 });
 
+document.addEventListener('DOMContentLoaded', function(){
+    vscode.postMessage({"command": "ready"});
+}, false);
+
+
 function info() {
     // set up information on right
     var dest = document.getElementById("info-cnt");
@@ -150,7 +155,6 @@ function row(idx,data,deleted) {
     }
 }
 
-window
 function copyRow(destId, srcId) {
     var dest = document.getElementById("row"+(destId+1));
     var src = document.getElementById("row"+(srcId+1));
