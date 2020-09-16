@@ -91,6 +91,6 @@ body {
     100%{background-position:0% 50%}
 }
 
-.selection {
-    background-color: var(--vscode-editor-selectionBackground);
+.selected {
+    background-color: var(--vscode-editor-hoverHighlightBackground);
 }

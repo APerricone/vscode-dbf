@@ -25,7 +25,10 @@ function info() {
     var dest = document.getElementById("info-cnt");
     var txt = "<h1>DBF Informations</h1>";
     txt+=`<p><b>version:</b> ${dbfInfo.version}</p>`
-    txt+=`<p><b>last modified date:</b> ${dbfInfo.year+1900}-${dbfInfo.month}-${dbfInfo.day}</p>`
+    var lastMod = new Date(dbfInfo.year+1900,dbfInfo.month,dbfInfo.day);
+    var dateOpt = { year: "numeric", month: "2-digit", day: "2-digit"};
+    var dFormat = new Intl.DateTimeFormat(navigator.language, dateOpt);
+    txt+=`<p><b>last modified date:</b> ${dFormat.format(lastMod)}</p>`
     txt+=`<p><b># records:</b> ${dbfInfo.nRecord}</p>`
     txt+= "<h2>Columns</h2>";
     for (let i = 0; i < dbfCols.length; i++) {
@@ -43,6 +46,7 @@ function info() {
     // setup scrolling
     var tableCnt = document.getElementById("table-cnt");
     tableCnt.onscroll = onScroll;
+    document.body.onkeydown = onKeyPress;
     window.onresize = onScroll;
     onScroll();
 }
@@ -101,7 +105,6 @@ function setupRows() {
             var cell = document.createElement("td");
             switch(dbfCols[id].type) {
                 case "C":
-                    cell.style.whiteSpace = "pre";
                     cell.className = "cCol";
                     break;
                 case "N":
@@ -147,7 +150,7 @@ function row(idx,data,deleted) {
     }
 }
 
-
+window
 function copyRow(destId, srcId) {
     var dest = document.getElementById("row"+(destId+1));
     var src = document.getElementById("row"+(srcId+1));
@@ -227,11 +230,47 @@ function onScroll() {
     }
 }
 
+function onKeyPress(evt) {
+    var selChanged = false;
+    switch (evt.code) {
+        case "ArrowRight":
+            selCol = Math.min(selCol+1, dbfCols.length);
+            selChanged = true;
+            break;
+        case "ArrowLeft":
+            selCol = Math.max(selCol-1, 1);
+            selChanged = true;
+            break;
+        case "ArrowUp":
+            selRow = Math.max(selRow-1, 1);
+            selChanged = true;
+            break;
+        case "ArrowDown":
+            selRow = Math.min(selRow+1, dbfInfo.nRecord);
+            selChanged = true;
+            break;
+        default:
+            break;
+    }
+    if(selChanged) {
+        for (let iRow = 0; iRow < totalRows; iRow++) {
+            var dest = document.getElementById("row"+(iRow+1));
+            if(!dest) continue;
+            var idx = parseInt(dest.children[0].textContent);
+            for (let iCol = 0; iCol < dbfCols.length; iCol++) {
+                if(idx==selRow && (iCol+1)==selCol) {
+                    dest.children[iCol+2].classList.add("selected");
+                } else
+                    dest.children[iCol+2].classList.remove("selected");
+            }
+        }
+    }
+}
+
 function goto(line) {
     var h1 = document.getElementsByTagName("body")[0].clientHeight
     var h2 = document.getElementById("row1").clientHeight
     var tableCnt = document.getElementById("table-cnt");
     tableCnt.scrollTop = line*h2 - h1/2;
     onScroll();
-
 }

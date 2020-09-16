@@ -4,6 +4,13 @@ All notable changes to the "vscode-dbf" extension will be documented in this fil
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.3]
+ - added support for resizing
+ - minimal selection support
+
+## [0.0.2]
+ - fixed little table visualization
+
 ## [0.0.1]
 
 - basic view of table
