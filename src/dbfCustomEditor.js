@@ -108,14 +108,20 @@ class dbfCustomEditor {
                 /** @type {String|Number|Date|Boolean} */
                 const val = row[i];
                 /** @type {dbfcolInfo} */
-                const colInfo = this.document.colInfos[i];
-                switch (colInfo.type) {
-                    case "C":   rowInfo.push(val);                      break;
-                    case "N":   rowInfo.push(val.toFixed(colInfo.dec)); break;
+                const col = this.document.colInfos[i];
+                switch (col.type) {
+                    case "C":
+                    case "V":   rowInfo.push(val);                      break;
                     case "L":   rowInfo.push(val? "1" : "0");           break;
                     case "D":   rowInfo.push(dFormat.format(val));      break;
-                    case "T":   rowInfo.push(tFormat.format(val));      break;
+                    case "T":   if(col.len==4) { rowInfo.push(tFormat.format(val));      break;} //fallthrough
                     case "@":   rowInfo.push(dtFormat.format(val));     break;
+                    case "I": case "Y": case "+": case "^": case "B": case "Z": case "F":
+                    case "N":   rowInfo.push(val.toFixed(col.dec)); break;
+                    case "V":
+                        if(col.len==3)  { rowInfo.push(dFormat.format(val)); break; }
+                        if(col.len==4)  { rowInfo.push(val.toFixed(col.dec)); break; }
+                        //fallthrough
                     default:    rowInfo.push(val + "?");                break;
                 }
 
