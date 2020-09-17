@@ -67,9 +67,9 @@ class dbfDocument {
         /** @type {dbfHeader} */
         this.info = {};
         this.info.version = data.readInt8(0);
-        this.info.year =  data.readInt8(1);
-        this.info.month =  data.readInt8(2);
-        this.info.day =  data.readInt8(3);
+        this.info.year =  data.readUInt8(1);
+        this.info.month =  data.readUInt8(2);
+        this.info.day =  data.readUInt8(3);
         this.info.nRecord =  data.readUInt32LE(4);
         this.info.headerLen = data.readUInt16LE(8);
         this.info.recordLen = data.readUInt16LE(10);
@@ -90,7 +90,7 @@ class dbfDocument {
             colInfo.name = data.toString("ascii",idx,idx+10).replace(/\0+/,"");
             colInfo.type= String.fromCharCode(data.readUInt8(idx+11));
             //12 // spazio di 4
-            colInfo.len = data.readInt8(idx+16);
+            colInfo.len = data.readUInt8(idx+16);
             colInfo.dec = data.readInt8(idx+17);
             colInfo.flags = data.readInt8(idx+18);
             colInfo.counter = data.readInt32LE(idx+19);
@@ -98,6 +98,9 @@ class dbfDocument {
             // 24 // spazio di 7
             colInfo.tag = data.readInt8(idx+31);
             switch(colInfo.type) {
+                case "C":
+                    colInfo.len += colInfo.dec * 256;
+                    break;
                 case "2": case "4":
                     colInfo.len = colInfo.type=="2"? 2 : 4;
                     colInfo.type = "I";
@@ -129,7 +132,7 @@ class dbfDocument {
                     colInfo.flags |= 1; // hidden
                     break;
                 }
-            if(colInfo.len>0)
+            if(colInfo.len!=0)
                 this.colInfos.push(colInfo);
         }
         this.ready = true;
