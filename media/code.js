@@ -150,7 +150,6 @@ function row(idx,data,deleted) {
     }
 }
 
-window
 function copyRow(destId, srcId) {
     var dest = document.getElementById("row"+(destId+1));
     var src = document.getElementById("row"+(srcId+1));
