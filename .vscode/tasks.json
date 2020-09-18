@@ -1,0 +1,21 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "HBMK2",
+			"input": "${file}",
+			"problemMatcher": [
+				"$harbour",
+				"$msCompile"
+			],
+			"label": "HBMK2: Builda file corrente",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"windows": {
+				"setupBatch": "c:\\harbour\\start32.bat"
+			}
+		}
+	]
+}

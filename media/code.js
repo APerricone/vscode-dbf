@@ -127,7 +127,6 @@ function setupRows() {
     h1=document.getElementsByTagName("body")[0].clientHeight
 
     vscode.postMessage({"command": "rows", "min":1, "max": Math.floor(h1/h2)-1});
-
 }
 
 
