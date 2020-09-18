@@ -80,9 +80,9 @@ class dbfDocument {
         /** @type {dbfHeader} */
         this.info = {};
         this.info.version = data.readInt8(0);
-        this.info.year =  data.readInt8(1);
-        this.info.month =  data.readInt8(2);
-        this.info.day =  data.readInt8(3);
+        this.info.year =  data.readUInt8(1);
+        this.info.month =  data.readUInt8(2);
+        this.info.day =  data.readUInt8(3);
         this.info.nRecord =  data.readUInt32LE(4);
         this.info.headerLen = data.readUInt16LE(8);
         this.info.recordLen = data.readUInt16LE(10);
@@ -90,13 +90,14 @@ class dbfDocument {
         this.info.transaction =  data.readInt8(14);
         this.info.encrypted =  data.readInt8(15);
         // 16 // spazio di 12
-        this.info.hasTags =  data.readInt8(28);
+        this.info.hasTags =  data.readInt8(28); //
         this.info.codePage =  data.readInt8(29);
         // 30 // spazio di 2
         /** @type {dbfColInfo[]} */
         this.colInfos = [];
         var nCol = (this.info.headerLen>>5)-1;
         var off = 1;
+        var vfp = this.info.version == 0x30 || this.info.version == 0x32;
         for(var colId=0;colId<nCol;colId++) {
             /** @type {dbfColInfo} */
             var colInfo = {};
@@ -104,7 +105,7 @@ class dbfDocument {
             colInfo.name = data.toString("ascii",idx,idx+10).replace(/\0+/,"");
             colInfo.type= String.fromCharCode(data.readUInt8(idx+11));
             //12 // spazio di 4
-            colInfo.len = data.readInt8(idx+16);
+            colInfo.len = data.readUInt8(idx+16);
             colInfo.dec = data.readInt8(idx+17);
             colInfo.flags = data.readInt8(idx+18);
             colInfo.counter = data.readInt32LE(idx+19);
@@ -114,8 +115,43 @@ class dbfDocument {
             // calculated value
             colInfo.offset = off;
             off+=colInfo.len;
-
-            this.colInfos.push(colInfo);
+            switch(colInfo.type) {
+                case "C":
+                    colInfo.len += colInfo.dec * 256;
+                    break;
+                case "2": case "4":
+                    colInfo.len = colInfo.type=="2"? 2 : 4;
+                    colInfo.type = "I";
+                    break;
+                case "8":
+                    colInfo.type = "B";
+                    break;
+                case "Q":
+                    colInfo.type = "V";
+                    colInfo.flags |= 0x4; // binary
+                    break;
+                case "V":
+                    if(vfp) {
+                        colInfo.type = "Q";
+                        colInfo.flags &= ~0x4; // binary
+                    }
+                    break;
+                case "\x1A": case "\x1B":
+                    colInfo.type = colInfo.type=="\x1A"? "C" : "V";
+                    colInfo.flags |= 0x40; // unicode 16
+                    colInfo.len += colInfo.dec*256;
+                    colInfo.len >>=1;
+                    break;
+                case "\x1C":
+                    colInfo.type = "M";
+                    colInfo.flags |= 0x40; // unicode 16
+                    break;
+                case "0":
+                    colInfo.flags |= 1; // hidden
+                    break;
+                }
+            if(colInfo.len!=0)
+                this.colInfos.push(colInfo);
         }
         this.ready = true;
         this.onReady(this);
@@ -151,38 +187,125 @@ class dbfDocument {
      * @param {Number} off
      * @param {dbfColInfo} col
      * @param {Boolean} cmpMode If true the value returned is readed faster and is easer to compare.
+     * @note see hb_dbfGetValue from Harbour\src\rdd\dbf1.c
      */
     readValueFromBuffer(data,off,col, cmpMode) {
-        var str = data.toString("ascii",off,off+col.len).replace(/\0+/,"");
+        var str;
+        if(col.flags & 0x40)
+            str = data.toString("utf16le",off,col.len);
+        else
+            str = data.toString("ascii",off,off+col.len).replace(/\0+/,"");
         switch (col.type) {
-            case "C": return str;
-            case "N":
-                // if(cmpMode) return str;
-                if(str.trim().length==0)
-                    return 0;
-                else
-                    return parseFloat(str);
-            case "L":
-                return str =='T';
-            case "D":
-                return cmpMode? str : new Date(str.substr(0,4),str.substr(4,2)-1,str.substr(6,2));
-            case "T":
-                if((col.flags & 4) == 0)
-                    throw "da fare";
-                if(cmpMode) return data.readInt32LE(off);
-                var val = new Date(0,0,1);
-                val.setFullYear(0);
-                val.setMilliseconds(data.readInt32LE(off));
-                return val;
-            case "@":
-                var val=new Date(0,0,0);
-                if(cmpMode) return {days:data.readInt32LE(off), msec: data.readInt32LE(off+4)};
-                val.setDate(data.readInt32LE(off)-2414989)
-                val.setMilliseconds(data.readInt32LE(off+4));
-                return val;
-            default:
-                if(cmpMode) return 0;
-                return col.type + "unsupported";
+                case "C":
+                    return str;
+                    break;
+                case "Q": { //var len
+                        if(col.flags & 0x40) {
+                            return str.substr(0,Math.min(data.readInt16LE(col.len-2),col.len));
+                        } else {
+                            return str.substr(0,Math.min(data.readInt8(col.len-1),col.len-1));
+                        }
+                    }
+                    break;
+                case "L":
+                    return (str =='T' || str =='t' || str=='Y' || str=='y');
+                    break;
+                case "D":
+                    switch(col.len) {
+                        case 3:
+                            if(cmpMode) return (data.readInt32LE(off) & 0x0FFFFFF);
+                            var val=new Date(0,0,0);
+                            val.setDate((data.readInt32LE(off) & 0x0FFFFFF) - 2414989)
+                            return val;
+                            break;
+                        case 4:
+                            if(cmpMode) return (data.readInt32LE(off) & 0x0FFFFFF);
+                            var val=new Date(0,0,0);
+                            val.setDate(data.readInt32LE(off) - 2414989)
+                            return val;
+                        default:
+                            if(cmpMode) return str;
+                            retrun (new Date(str.substr(0,4),str.substr(4,2)-1,str.substr(6,2)));
+                    }
+                    break;
+                case "T":
+                    if(col.len==4) {
+                        if(cmpMode) return data.readInt32LE(off);
+                        var val = new Date(0,0,1);
+                        val.setFullYear(0);
+                        val.setMilliseconds(data.readInt32LE(off));
+                        return val;
+                    }
+                    // fallthrough
+                case "@": case "=":
+                    if(cmpMode) return {days:data.readInt32LE(off), msec: data.readInt32LE(off+4)};
+                    var val=new Date(0,0,0);
+                    val.setDate(data.readInt32LE(off)-2414989)
+                    val.setMilliseconds(data.readInt32LE(off+4));
+                    return val;
+                    break;
+                case "I": case "Y": case "+": case "^":
+                    if(col.dec!=0) {
+                        var mul = 10 ** (-col.dec);
+                        switch(col.len) {
+                            case 1:
+                                return (data.readInt8(off) * mul);
+                            case 2:
+                                return (data.readInt16LE(off) * mul);
+                            case 3:
+                                return ((data.readInt32LE(off) & 0xFFFFFF) * mul);
+                            case 4:
+                                return (data.readInt32LE(off) * mul);
+                            case 8:
+                                return (data.readDoubleLE(off) * mul);
+                            default:
+                                return (NaN);
+                            }
+                    } else {
+                    switch(col.len) {
+                        case 1:
+                            return (data.readInt8(off));
+                        case 2:
+                            return (data.readInt16LE(off));
+                        case 3:
+                            return (data.readInt32LE(off) & 0xFFFFFF);
+                        case 4:
+                            return (data.readInt32LE(off));
+                        case 8:
+                            return (data.readBigInt64LE(off));
+                        default:
+                            return (NaN);
+                        }
+                    }
+                case "B": case "Z":
+                    return (data.readDoubleLE(off));
+                case "N": case "F":
+                    if(str.trim().length==0)
+                        return (0);
+                    else
+                        return (parseFloat(str));
+                    break;
+                case "V":
+                    switch(col.len) {
+                        case 3:
+                            var val = data.readInt32LE(off) & 0xFFFFFF;
+                            if(cmpMode) return val;
+                            return (new Date(1900+(val>>9),(val>>5) & 0xF,val & 0x1F));
+                        case 4:
+                            return (data.readInt32LE(off));
+                            break;
+                        default:
+                            return null;
+                            break;
+                        }
+                        break;
+                case "M":
+                    return "<memo data>"
+                    break;
+                default:
+                    if(cmpMode) return 0;
+                    return (col.type + "unsupported");
+            }
         }
     }
 

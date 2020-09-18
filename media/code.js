@@ -20,6 +20,11 @@ window.addEventListener("message", ev => {
         }
 });
 
+document.addEventListener('DOMContentLoaded', function(){
+    vscode.postMessage({"command": "ready"});
+}, false);
+
+
 function info() {
     // set up information on right
     var dest = document.getElementById("info-cnt");
