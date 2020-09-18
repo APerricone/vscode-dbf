@@ -62,6 +62,7 @@ class dbfDocument {
 
     readHeader() {
         fs.open(this.uri.fsPath, 'r', (err, fd) => {
+            //if(err) throw err;
             fs.read(fd, Buffer.alloc(2), 0, 2, 8, (err, nByte, hl) => {
                 var headerLen = hl.readUInt16LE(0);
                 var buff = Buffer.alloc(headerLen);
@@ -127,8 +128,10 @@ class dbfDocument {
                     colInfo.type = "B";
                     break;
                 case "Q":
-                    colInfo.type = "V";
-                    colInfo.flags |= 0x4; // binary
+                    if (vfp) {
+                        colInfo.type = "V";
+                        colInfo.flags |= 0x4; // binary
+                    }
                     break;
                 case "V":
                     if (vfp) {
@@ -137,7 +140,7 @@ class dbfDocument {
                     }
                     break;
                 case "\x1A": case "\x1B":
-                    colInfo.type = colInfo.type == "\x1A" ? "C" : "V";
+                    colInfo.type = colInfo.type == "\x1A" ? "C" : "Q";
                     colInfo.flags |= 0x40; // unicode 16
                     colInfo.len += colInfo.dec * 256;
                     //colInfo.len >>= 1;
@@ -148,6 +151,7 @@ class dbfDocument {
                     break;
                 case "0":
                     colInfo.flags |= 1; // hidden
+                    continue;
                     break;
             }
             if (colInfo.len != 0)
@@ -200,13 +204,12 @@ class dbfDocument {
                 return str;
             case "Q":
                 if (col.flags & 0x40) {
-                    return str.substr(0, Math.min(data.readInt16LE(col.len - 2), col.len));
+                    return str.substr(0, Math.min(data.readUInt16LE(off + col.len - 2), col.len));
                 } else {
-                    return str.substr(0, Math.min(data.readInt8(col.len - 1), col.len - 1));
+                    return str.substr(0, Math.min(data.readUInt8(off + col.len-1), col.len - 1));
                 }
             case "L":
                 return (str == 'T' || str == 't' || str == 'Y' || str == 'y');
-                break;
             case "D":
                 switch (col.len) {
                     case 3:
@@ -214,7 +217,6 @@ class dbfDocument {
                         var val = new Date(0, 0, 0);
                         val.setDate((data.readInt32LE(off) & 0x0FFFFFF) - 2414989)
                         return val;
-                        break;
                     case 4:
                         if (cmpMode) return (data.readInt32LE(off) & 0x0FFFFFF);
                         var val = new Date(0, 0, 0);
@@ -222,7 +224,7 @@ class dbfDocument {
                         return val;
                     default:
                         if (cmpMode) return str;
-                        retrun(new Date(str.substr(0, 4), str.substr(4, 2) - 1, str.substr(6, 2)));
+                        return(new Date(str.substr(0, 4), str.substr(4, 2) - 1, str.substr(6, 2)));
                 }
                 break;
             case "T":
@@ -240,7 +242,6 @@ class dbfDocument {
                 val.setDate(data.readInt32LE(off) - 2414989)
                 val.setMilliseconds(data.readInt32LE(off + 4));
                 return val;
-                break;
             case "I": case "Y": case "+": case "^":
                 if (col.dec != 0) {
                     var mul = 10 ** (-col.dec);
@@ -281,7 +282,6 @@ class dbfDocument {
                     return (0);
                 else
                     return (parseFloat(str));
-                break;
             case "V":
                 switch (col.len) {
                     case 3:
@@ -290,12 +290,9 @@ class dbfDocument {
                         return (new Date(1900 + (val >> 9), (val >> 5) & 0xF, val & 0x1F));
                     case 4:
                         return (data.readInt32LE(off));
-                        break;
                     default:
                         return null;
-                        break;
                 }
-                break;
             case "M":
                 return "<memo data>"
             default:
