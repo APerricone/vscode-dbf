@@ -15,7 +15,10 @@ function activate(context) {
 	let disposable = vscode.commands.registerCommand('vscode-dbf.goto', function () {
 		/** @type {dbfCustomEditor} */
 		var editor = dbfCustomEditor.getCurrentEditor();
-
+		if(!editor) {
+			vscode.window.showInformationMessage('This command works only when a DBF is open.');
+			return;
+		}
 		vscode.window.showInputBox({
 			"prompt": `Type a record number between 1 and ${editor.document.info.nRecord}`,
 			"valueSelection": [1,editor.document.info.nRecord+1]

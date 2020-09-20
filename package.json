@@ -23,7 +23,7 @@
 			{
 				"command": "vscode-dbf.goto",
 				"title": "DBF - Go to recno..",
-				"enablement": "customEditor == dbf-table"
+				"enablement": "editorLangId == dbf-table"
 			}
 		],
 		"customEditors": [

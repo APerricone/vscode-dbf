@@ -1,14 +1,16 @@
 request DBFCDX, HB_CODEPAGE_UTF8EX
 
 proc main()
+    HB_CDPSELECT("UTF8EX")
+
     string()
     varString()
+    logicalAndDateTime()
 return
 
 proc string()
     local txt
     field simple,long, unicode
-    HB_CDPSELECT("UTF8EX")
     if File("TestString.dbf")
         FErase("TestString.dbf")
     endif
@@ -22,7 +24,6 @@ proc string()
     field->long := "a very long text"
     txt := "ナルト うずまき"
     field->unicode := txt
-    ? txt,field->unicode
     dbAppend()
     field->simple := "second row"
     field->long := "Nel mezzo del cammin di nostra vita \"+;
@@ -33,20 +34,16 @@ proc string()
             " che nel pensier rinova la paura!"
     txt := "神曲"
     field->unicode := txt
-    ? txt,field->unicode
     dbAppend()
     field->simple := "third  row"
     field->long := "It is not important"
     txt := "تم حذف الخط"
     field->unicode := txt
-    ? txt,field->unicode
-    dbDelete()
 return
 
 proc varString()
     Local txt
     field simple,long, unicode
-    HB_CDPSELECT("UTF8EX")
     if File("TestVarString.dbf")
         FErase("TestVarString.dbf")
     endif
@@ -60,7 +57,6 @@ proc varString()
     field->long := "a very long text"
     txt := "ナルト うずまき"
     field->unicode := txt
-    ? txt,field->unicode
     dbAppend()
     field->simple := "second row"
     field->long := "Nel mezzo del cammin di nostra vita \"+;
@@ -71,12 +67,50 @@ proc varString()
             " che nel pensier rinova la paura!"
     txt := "神曲"
     field->unicode := txt
-    ? txt,field->unicode
     dbAppend()
     field->simple := "third  row"
     field->long := "It is not important"
     txt := "تم حذف الخط"
     field->unicode := txt
-    ? txt,field->unicode
-    dbDelete()
 return
+
+proc logicalAndDateTime()
+    local dt
+    field logical,date3,date4,date8, time4, time8
+    if File("TestLogicalAndDateTime.dbf")
+        FErase("TestLogicalAndDateTime.dbf")
+    endif
+    dbCreate("TestLogicalAndDateTime", {;
+        {"logical","L",1,0}, ;
+        {"date3","D",3,0}, ;
+        {"date4","D",4,0}, ;
+        {"date8","D",8,0}, ;
+        {"time4","T",4,0}, ;
+        {"time8","T",8,0}  ;
+    },"DBFCDX",.T.)
+    dbAppend()
+    field->logical := .T.
+    dt := {^ 2020-01-01 12:34:56}
+    field->date3 := dt
+    field->date4 := dt
+    field->date8 := dt
+    field->time4 := dt
+    field->time8 := dt
+    dbAppend()
+    field->logical := .F.
+    dt := {^ 1900-01-01 23:59:59}
+    field->date3 := dt
+    field->date4 := dt
+    field->date8 := dt
+    field->time4 := dt
+    field->time8 := dt
+    dbAppend()
+    field->logical := .T.
+    dt := {^ 2345-12-31 00:00:00}
+    field->date3 := dt
+    field->date4 := dt
+    field->date8 := dt
+    field->time4 := dt
+    field->time8 := dt
+return
+

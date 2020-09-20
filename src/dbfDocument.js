@@ -214,32 +214,37 @@ class dbfDocument {
                 switch (col.len) {
                     case 3:
                         if (cmpMode) return (data.readInt32LE(off) & 0x0FFFFFF);
-                        var val = new Date(0, 0, 0);
+                        var val = new Date(Date.UTC(0, 0, 0));
                         val.setDate((data.readInt32LE(off) & 0x0FFFFFF) - 2414989)
                         return val;
                     case 4:
-                        if (cmpMode) return (data.readInt32LE(off) & 0x0FFFFFF);
-                        var val = new Date(0, 0, 0);
+                        if (cmpMode) return (data.readInt32LE(off));
+                        var val = new Date(Date.UTC(0, 0, 0));
                         val.setDate(data.readInt32LE(off) - 2414989)
                         return val;
                     default:
                         if (cmpMode) return str;
-                        return(new Date(str.substr(0, 4), str.substr(4, 2) - 1, str.substr(6, 2)));
+                        var val = new Date(str.substr(0, 4)+"-"+str.substr(4, 2)+"-"+str.substr(6, 2));
+                        //var val = new Date(Date.UTC(0,parseInt(str.substr(4, 2))-1,parseInt(str.substr(6, 2))));
+                        //val.setUTCFullYear(parseInt(str.substr(0, 4)));
+                        return val;
                 }
                 break;
             case "T":
                 if (col.len == 4) {
                     if (cmpMode) return data.readInt32LE(off);
-                    var val = new Date(0, 0, 1);
+                    var val = new Date(Date.UTC(0,0,1));
                     val.setFullYear(0);
+                    val.setHours(0,0,0);
                     val.setMilliseconds(data.readInt32LE(off));
                     return val;
                 }
             // fallthrough
             case "@": case "=":
                 if (cmpMode) return { days: data.readInt32LE(off), msec: data.readInt32LE(off + 4) };
-                var val = new Date(0, 0, 0);
-                val.setDate(data.readInt32LE(off) - 2414989)
+                var val = new Date(Date.UTC(0, 0, 0));
+                val.setUTCDate(data.readInt32LE(off) - 2414989)
+                val.setHours(0,0,0);
                 val.setMilliseconds(data.readInt32LE(off + 4));
                 return val;
             case "I": case "Y": case "+": case "^":
@@ -333,12 +338,14 @@ class dbfDocument {
             case "D": // returns a string so as not to waste time creating a Date object
                 return (a, b) => a < b ? -1 : a > b ? 1 : 0;
             case "N":
-            case "T":  // returns a number so as not to waste time creating a Date object
                 return (a, b) => a - b;
-            case "L":
-                return (a, b) => a == b ? 0 : a ? 1 : -1;
+            case "T":
+                if(col.len==4) return (a, b) => a - b;
+                // fallthrough
             case "@": // {days, msec}
                 return (a, b) => a[0] != b[0] ? a[0] - b[0] : a[1] - b[1];
+            case "L":
+                return (a, b) => a == b ? 0 : a ? 1 : -1;
             default:
                 break;
         }

@@ -13,15 +13,36 @@ function testDBF(fileName,result, prepare) {
 		dbf.onRow = (row) => {
 			assert.strictEqual(row.length, result[row.recNo-1].length, "row "+row.recNo+" # field");
 			if(prepare) prepare(row);
-			for(i=0;i<row.length;i++) {
-				assert.strictEqual(row[0], result[row.recNo-1][0], "row "+row.recNo+" field len "+0);
-				assert.strictEqual(row[1], result[row.recNo-1][1], "row "+row.recNo+" field len "+1);
-				assert.strictEqual(row[2], result[row.recNo-1][2], "row "+row.recNo+" field len "+2);
+			for(let i=0;i<row.length;i++) {
+				assert.deepStrictEqual(row[i], result[row.recNo-1][i], "row "+row.recNo+" field "+(i+1));
 			}
 			if(row.recNo==result.length)
 				resolve();
 		}
 	});
+}
+
+/**
+ *
+ * @param {Date} dt
+ */
+function onlyDate(dt) {
+	var val = new Date(Date.UTC(0,dt.getUTCMonth(),dt.getDate()));
+	val.setUTCFullYear(dt.getUTCFullYear());
+	return val;
+}
+/**
+ *
+ * @param {Date} dt
+ */
+function onlyTime(dt) {
+	var val = new Date(dt);
+	//val.setUTCFullYear(0);
+	//val.setUTCHours();
+	//val.setHours(dt.getHours(),dt.getMinutes(),dt.getSeconds());
+	val.setFullYear(0,0,1);
+	val.setHours(dt.getHours(),dt.getMinutes(),dt.getSeconds());
+	return val;
 }
 
 suite('dbf Reading Test Suite', () => {
@@ -33,4 +54,11 @@ suite('dbf Reading Test Suite', () => {
 	];
 	test('String Test',  () => testDBF("TestString.dbf",str,(r) => r.forEach((x,i) => r[i]=x.trim())));
 	test('Varstring Test',  () => testDBF("TestVarString.dbf",str));
+	var baseDates = [new Date("2020-01-01 12:34:56"), new Date("1900-01-01 23:59:59"), new Date("2345-12-31 00:00:00")]
+	var dateTime = [];
+	for (let i = 0; i < baseDates.length; i++) {
+		const e = baseDates[i];
+		dateTime.push([(i!=1), onlyDate(baseDates[i]),onlyDate(baseDates[i]),onlyDate(baseDates[i]),onlyTime(baseDates[i]),baseDates[i] ]);
+	}
+	test('DateTime Test',  () => testDBF("TestLogicalAndDateTime.dbf",dateTime));
 });
