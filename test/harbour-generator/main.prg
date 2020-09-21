@@ -6,6 +6,7 @@ proc main()
     string()
     varString()
     logicalAndDateTime()
+    numeric()
 return
 
 proc string()
@@ -112,5 +113,72 @@ proc logicalAndDateTime()
     field->date8 := dt
     field->time4 := dt
     field->time8 := dt
+return
+
+proc numeric()
+    field numeric, numDec
+    field Int1, Int2, Int3, Int4, Int8
+    field Dec1, Dec2, Dec3, Dec4, Dec8
+    field BinDouble
+    if File("TestNumeric.dbf")
+        FErase("TestNumeric.dbf")
+    endif
+    dbCreate("TestNumeric", {;
+        {"numeric","N",5,0}, ;
+        {"numDec","N",5,2}, ;
+        {"Int1","I",1,0}, ;
+        {"Int2","I",2,0}, ;
+        {"Int3","I",3,0}, ;
+        {"Int4","I",4,0}, ;
+        {"Int8","I",8,0}, ;
+        {"Dec1","I",1,2}, ;
+        {"Dec2","I",2,2}, ;
+        {"Dec3","I",3,2}, ;
+        {"Dec4","I",4,2}, ;
+        {"Dec8","I",8,2}, ;
+        {"BinDouble","B",30,0} ;
+    },"DBFCDX",.T.)
+    dbAppend()
+    field->numeric  := 1
+    field->numDec   := 1
+    field->Int1 := 1
+    field->Int2 := 1
+    field->Int3 := 1
+    field->Int4 := 1
+    field->Int8 := 1
+    field->Dec1 := 1
+    field->Dec2 := 1
+    field->Dec3 := 1
+    field->Dec4 := 1
+    field->Dec8 := 1
+    field->BinDouble := 1
+    dbAppend()
+    field->numeric  := 3.14
+    field->numDec   := 3.14
+    field->Int1 := 3.14
+    field->Int2 := 3.14
+    field->Int3 := 3.14
+    field->Int4 := 3.14
+    field->Int8 := 3.14
+    field->Dec1 := 1.27
+    field->Dec2 := 3.14
+    field->Dec3 := 3.14
+    field->Dec4 := 3.14
+    field->Dec8 := 3.14
+    field->BinDouble := 3.14
+    dbAppend()
+    field->numeric  := -2
+    field->numDec   := -2.71
+    field->Int1 := -2
+    field->Int2 := -2
+    field->Int3 := -2
+    field->Int4 := -2
+    field->Int8 := -2
+    field->Dec1 := -1.28
+    field->Dec2 := -2.71
+    field->Dec3 := -2.71
+    field->Dec4 := -2.71
+    field->Dec8 := -2.71
+    field->BinDouble := -2.71
 return
 

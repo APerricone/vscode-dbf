@@ -248,37 +248,26 @@ class dbfDocument {
                 val.setMilliseconds(data.readInt32LE(off + 4));
                 return val;
             case "I": case "Y": case "+": case "^":
-                if (col.dec != 0) {
+                var mul = 1;
+                if (col.dec != 0)
                     var mul = 10 ** (-col.dec);
-                    switch (col.len) {
-                        case 1:
-                            return (data.readInt8(off) * mul);
-                        case 2:
-                            return (data.readInt16LE(off) * mul);
-                        case 3:
-                            return ((data.readInt32LE(off) & 0xFFFFFF) * mul);
-                        case 4:
-                            return (data.readInt32LE(off) * mul);
-                        case 8:
-                            return (data.readDoubleLE(off) * mul);
-                        default:
-                            return (NaN);
-                    }
-                } else {
-                    switch (col.len) {
-                        case 1:
-                            return (data.readInt8(off));
-                        case 2:
-                            return (data.readInt16LE(off));
-                        case 3:
-                            return (data.readInt32LE(off) & 0xFFFFFF);
-                        case 4:
-                            return (data.readInt32LE(off));
-                        case 8:
+                switch (col.len) {
+                    case 1:
+                        return (data.readInt8(off) * mul);
+                    case 2:
+                        return (data.readInt16LE(off) * mul);
+                    case 3:
+                        return (data.readInt24LE(off) * mul);
+                    case 4:
+                        return (data.readInt32LE(off) * mul);
+                    case 8:
+                        // keep big int?
+                        if(col.dec==0)
                             return (data.readBigInt64LE(off));
-                        default:
-                            return (NaN);
-                    }
+                        else
+                            return (Number(data.readBigInt64LE(off)) * mul);
+                    default:
+                        return (NaN);
                 }
             case "B": case "Z":
                 return (data.readDoubleLE(off));
@@ -408,3 +397,9 @@ class dbfDocument {
 }
 exports.dbfDocument = dbfDocument;
 
+Buffer.prototype.readInt24LE = function(off) {
+    var tmp = Buffer.alloc(4);
+    this.copy(tmp,0,off,off+3);
+    if(tmp.readUInt8(2)&0x80) tmp.writeUInt8(0xFF,3);
+    return tmp.readInt32LE();
+}

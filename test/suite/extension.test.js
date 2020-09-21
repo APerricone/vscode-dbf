@@ -61,4 +61,11 @@ suite('dbf Reading Test Suite', () => {
 		dateTime.push([(i!=1), onlyDate(baseDates[i]),onlyDate(baseDates[i]),onlyDate(baseDates[i]),onlyTime(baseDates[i]),baseDates[i] ]);
 	}
 	test('DateTime Test',  () => testDBF("TestLogicalAndDateTime.dbf",dateTime));
+
+	var numeric = [
+		[ 1, 1   , 1, 1, 1, 1, 1n, 1   , 1   , 1   , 1   , 1   , 1   ],
+		[ 3, 3.14, 3, 3, 3, 3, 3n, 1.27, 3.14, 3.14, 3.14, 3.14, 3.14],
+		[-2,-2.71,-2,-2,-2,-2,-2n,-1.28,-2.71,-2.71,-2.71,-2.71,-2.71]
+	];//                       ^ Bigint values
+	test('Numeric Test',  () => testDBF("TestNumeric.dbf",numeric));
 });
