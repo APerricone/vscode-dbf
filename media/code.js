@@ -12,7 +12,7 @@ window.addEventListener("message", ev => {
             info();
             break;
         case "row":
-            row(ev.data.recno, ev.data.data, ev.data.deleted)
+            row(ev.data.ordNo, ev.data.recNo, ev.data.data, ev.data.deleted)
             break;
         case "goto":
             goto(ev.data.data);
@@ -82,6 +82,7 @@ function header(data) {
                 cell.style.width = cell.style.maxWidth = cell.style.minWidth = "22ch";
                 break;
             }
+        cell.onclick=changeOrder
         dest.appendChild(cell);
     }
 }
@@ -129,8 +130,7 @@ function setupRows() {
     vscode.postMessage({"command": "rows", "min":1, "max": Math.floor(h1/h2)-1});
 }
 
-
-function row(idx,data,deleted) {
+function row(idx,recNo,data,deleted) {
     var h2 = document.getElementById("row1").clientHeight
     var tableCnt = document.getElementById("table-cnt");
     var firstPos = Math.floor(tableCnt.scrollTop / h2);
@@ -144,7 +144,7 @@ function row(idx,data,deleted) {
     } else {
         dest.classList.remove("deleted");
     }
-    dest.children[0].textContent = idx+"";
+    dest.children[0].textContent = recNo+"";
     for (let id = 0; id < data.length; id++) {
         if(idx==selRow && (id+1)==selCol) {
             dest.children[id+2].classList.add("selected");
@@ -180,13 +180,14 @@ function onScroll() {
     var tableCnt = document.getElementById("table-cnt");
     //if(tableCnt.scrollTop==lastTop)
     //    return;
-    var h1 = document.getElementsByTagName("body")[0].clientHeight
+    var h1 = document.body.clientHeight
     var h2 = document.getElementById("row1").clientHeight;
     var nRows = Math.floor(h1/h2)-1;
 
     var maxTop = ((dbfInfo.nRecord+3)*h2)-h1;
     tableCnt.children[0].style.top=Math.max(0,Math.min(maxTop,tableCnt.scrollTop))+"px";
 
+    // hide and show rows based on current height
     var firstPos = Math.floor(tableCnt.scrollTop / h2);
     for(let i=0;i<totalRows;i++) {
         var dest = document.getElementById("row"+(i+1));
@@ -203,7 +204,7 @@ function onScroll() {
             }
         }
     }
-
+    // move the current rows
     var oldFirst = Math.floor(lastTop / h2);
     lastTop = tableCnt.scrollTop;
     if(oldFirst!=firstPos) {
@@ -276,4 +277,44 @@ function goto(line) {
     var tableCnt = document.getElementById("table-cnt");
     tableCnt.scrollTop = line*h2 - h1/2;
     onScroll();
+}
+
+/**
+ *
+ * @param {MouseEvent} evt
+ */
+function changeOrder(evt) {
+    /** @type{HTMLElement} */
+    var element = evt.target;
+    var index = Array.prototype.indexOf.call(element.parentNode.children, element);
+    var sortOrder = "asc";
+    if(element.classList.contains("sort-asc"))
+        sortOrder = "desc";
+    else if(element.classList.contains("sort-desc"))
+        sortOrder = undefined;
+    Array.prototype.forEach.call(element.parentNode.children, ele => {
+        ele.classList.remove("sort-asc");
+        ele.classList.remove("sort-desc");
+    });
+
+    if(sortOrder) {
+        element.classList.add("sort-"+sortOrder);
+    } else
+        index = -1;
+    //updateOrder();
+    for(let i=0;i<totalRows;i++) {
+        var dest = document.getElementById("row"+(i+1));
+        if(dest) {
+            dest.classList.add("empty");
+            dest.classList.remove("filled");
+        }
+    }
+    vscode.postMessage({"command": "order", "colId": index-1, "desc": sortOrder=="desc"});
+    //onScroll();
+    var tableCnt = document.getElementById("table-cnt");
+    var h1 = document.body.clientHeight
+    var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;;
+    var nRows = Math.floor(h1/h2)-1;
+    var firstPos = Math.floor(tableCnt.scrollTop / h2);
+    vscode.postMessage({"command": "rows", "min":(firstPos), "max": (firstPos+nRows)});
 }

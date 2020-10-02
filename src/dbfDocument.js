@@ -47,7 +47,7 @@ class dbfDocument {
         this.onRow = (row) => { };
         /** index of sort column, or undefined if no sort info
          * @type {Number} */
-        this.sorted = undefined;
+        this.sortCol = undefined;
         /** @type {boolean} */
         this.sorted_desc = false;
         /** sorted recno, it is an array of length info.nRecord.
@@ -55,7 +55,7 @@ class dbfDocument {
         */
         this.sortedIdx = undefined; //
         this.sorting = false;
-        this.onSorted = () => { };
+        this.onSortDone = () => { };
         // Init
         this.readHeader();
     }
@@ -167,14 +167,14 @@ class dbfDocument {
         var recordBuff = Buffer.alloc(this.info.recordLen);
         var idx = start;
         if (this.sortedIdx) {
-            off = this.info.headerLen + this.info.recordLen * (this.sortedIdx[idx] - 1)
+            off = this.info.headerLen + this.info.recordLen * (this.sortedIdx[idx-1] - 1)
         }
         fs.open(this.uri.fsPath, 'r', (err, fd) => {
             var cb = (err, nByte, buff) => {
                 this.readRowFromBuffer(idx, buff);
                 idx++;
                 if (this.sortedIdx) {
-                    off = this.info.headerLen + this.info.recordLen * (this.sortedIdx[idx] - 1)
+                    off = this.info.headerLen + this.info.recordLen * (this.sortedIdx[idx-1] - 1)
                 } else off += this.info.recordLen;
                 if (idx <= end)
                     fs.read(fd, recordBuff, 0, this.info.recordLen, off, cb);
@@ -213,9 +213,9 @@ class dbfDocument {
             case "D":
                 switch (col.len) {
                     case 3:
-                        if (cmpMode) return (data.readInt32LE(off) & 0x0FFFFFF);
+                        if (cmpMode) return (data.readInt24LE(off) & 0x0FFFFFF);
                         var val = new Date(Date.UTC(0, 0, 0));
-                        val.setDate((data.readInt32LE(off) & 0x0FFFFFF) - 2414989)
+                        val.setDate((data.readInt24LE(off)) - 2414989)
                         return val;
                     case 4:
                         if (cmpMode) return (data.readInt32LE(off));
@@ -302,11 +302,11 @@ class dbfDocument {
      */
     readRowFromBuffer(idx, data) {
         var ret = [];
-        ret.recNo = idx;
+        ret.ordNo = idx;
         if (this.sortedIdx)
-            ret.ordNo = this.sortedIdx[idx];
+            ret.recNo = this.sortedIdx[idx-1];
         else
-            ret.ordNo = idx;
+            ret.recNo = idx;
         ret.deleted = String.fromCharCode(data.readInt8(0)) == '*';
         var off = 1;
         for (let i = 0; i < this.colInfos.length; i++) {
@@ -321,20 +321,27 @@ class dbfDocument {
      *
      * @param {dbfColInfo} col
      */
-    getCmpFunc(col) {
+    getCmpFunc(col,desc) {
+        var v = desc? -1 : 1;
         switch (col.type) {
-            case "C":
-            case "D": // returns a string so as not to waste time creating a Date object
-                return (a, b) => a < b ? -1 : a > b ? 1 : 0;
-            case "N":
-                return (a, b) => a - b;
-            case "T":
-                if(col.len==4) return (a, b) => a - b;
-                // fallthrough
-            case "@": // {days, msec}
-                return (a, b) => a[0] != b[0] ? a[0] - b[0] : a[1] - b[1];
+            case "C": case "Q":
+                return (a, b) => a[0] < b[0] ? -v : a[0] > b[0] ? v : 0;
             case "L":
-                return (a, b) => a == b ? 0 : a ? 1 : -1;
+                return (a, b) => a[0] == b[0] ? 0 : a[0] ? v : -v;
+            case "D":
+                if(col.len==3 || col.len==4)
+                    return (a, b) => v * (a[0] - b[0]);
+                else
+                    return (a, b) => a[0] < b[0] ? -v : a[0] > b[0] ? v : 0;
+            case "T":
+                if(col.len==4) return (a, b) => v * (a[0] - b[0]);
+                // fallthrough
+            case "@": case "=": // {days, msec}
+                return (a, b) => a[0].days != b[0].days ? v * (a[0].days - b[0].days) : v * (a[0].msec - b[0].msec);
+            case "I": case "Y": case "+": case "^":
+            case "B": case "Z": case "N": case "F":
+            case "V":
+                return (a, b) => v * (a[0] - b[0]);
             default:
                 break;
         }
@@ -352,15 +359,15 @@ class dbfDocument {
         }
         if (typeof (colId) != "number") throw "invalid parameter";
         if (colId < 0) {
-            if (this.sorted) {
-                this.sorted = undefined;
+            if (this.onSortDone) {
+                this.sortCol = undefined;
                 this.sortedIdx = undefined;
                 this.sorting = false;
                 this.onSorted();
             }
             return;
         }
-        this.sorted = colId;
+        this.sortCol = colId;
         this.sorted_desc = Boolean(desc);
         this.sorting = true;
         // read values
@@ -372,10 +379,10 @@ class dbfDocument {
         var readed;
         fs.open(this.uri.fsPath, 'r', (err, fd) => {
             var cb = (err, nByte, buff) => {
-                colData[idx - 1] = this.readValueFromBuffer(buff, 0, colInfo, true);
+                colData[idx - 1] = [this.readValueFromBuffer(buff, 0, colInfo, true), idx];
                 idx++;
                 off += this.info.recordLen;
-                if (idx < this.info.nRecord)
+                if (idx <= this.info.nRecord)
                     fs.read(fd, recordBuff, 0, colInfo.len, off, cb);
                 else {
                     fs.close(fd);
@@ -386,11 +393,11 @@ class dbfDocument {
         });
         // all record readed
         readed = () => {
-            this.sortedIdx = Array.from({ length: this.info.nRecord }, (_, i) => i + 1);
-            var sortFn = this.getCmpFunc(colInfo);
-            if (this.sorted_desc) sortFn = (a, b) => -sortFn(); // brain-fuck
-            this.sortedIdx.sort(sortFn);
-            this.sorted();
+            var sortFn = this.getCmpFunc(colInfo,this.sorted_desc);
+            //if (this.sorted_desc) sortFn = (a, b) => -sortFn(a,b); // brain-fuck
+            colData.sort(sortFn);
+            this.sortedIdx = colData.map((v)=>v[1]);
+            this.onSortDone();
         }
 
     }

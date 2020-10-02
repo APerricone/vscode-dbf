@@ -2,7 +2,17 @@
     <head>
         <meta
             http-equiv="Content-Security-Policy"
-            content="default-src 'none'; img-src ${webview.cspSource} data:; script-src ${webview.cspSource}; style-src ${webview.cspSource};"/>
+            content="default-src 'none';
+            img-src ${webview.cspSource} data:;
+            font-src ${webview.cspSource};
+            script-src ${webview.cspSource};
+            style-src ${webview.cspSource} 'self' 'unsafe-inline';"/>
+        <style>
+            @font-face {
+            	font-family: "codicon";
+	            src: url("${baseUri}/codicon.ttf") format("truetype");
+            }
+        </style>
         <link rel="stylesheet" href="${baseUri}/style.css">
         <script src="${baseUri}/code.js"></script>
     </head>

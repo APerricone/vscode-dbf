@@ -32,6 +32,7 @@ body {
     width: 18%;
     float: right;
     height: 98%;
+    height: 98%;
     display: block;
     overflow-y: scroll;
 }
@@ -57,6 +58,29 @@ body {
 
 #table-cnt thead tr th {
     background-color: var(--vscode-editor-symbolHighlightBackground);
+}
+
+#table-cnt thead tr:nth-child(1) th {
+    cursor: pointer;
+    position: relative;
+}
+
+.sort-asc:after {
+	font: normal normal normal 16px/1 codicon;
+    content: "\EB71";
+    position: absolute;
+    right: 3px;
+    background-color: var(--vscode-editor-symbolHighlightBackground);
+    border-radius: 50%;
+}
+
+.sort-desc:after {
+	font: normal normal normal 16px/1 codicon;
+    content: "\EB6E";
+    position: absolute;
+    right: 3px;
+    background-color: var(--vscode-editor-symbolHighlightBackground);
+    border-radius: 50%;
 }
 
 #table-cnt tbody tr:nth-child(odd) {

@@ -1,7 +1,8 @@
 const vscode = require('vscode');
-//const { dbfDocument } = require("./dbfDocument");
+const { dbfDocument } = require("./dbfDocument");
 const path = require('path');
 const fs = require('fs');
+const { type } = require('os');
 
 var dbfCurrentEditor;
 /**
@@ -81,9 +82,21 @@ class dbfCustomEditor {
                     this.fillWebPanel();
                 } else
                     this.document.onReady = () => this.fillWebPanel();
+
                 break;
             case "rows":
-                this.document.readRows(message.min,Math.min(message.max,this.document.info.nRecord));
+                if(!this.document.sorting)
+                    this.document.readRows(message.min,Math.min(message.max,this.document.info.nRecord));
+                else {
+                    if(this.requestedRows)
+                        this.requestedRows = [  Math.min(this.requestedRows[0],message.min),
+                                                Math.max(this.requestedRows[1],message.max)]
+                    else
+                        this.requestedRows = [message.min,message.max];
+                }
+                break;
+            case "order":
+                this.document.sort(message.colId,message.desc);
                 break;
             default:
                 break;
@@ -111,13 +124,26 @@ class dbfCustomEditor {
                 const col = this.document.colInfos[i];
                 switch (col.type) {
                     case "C":
-                    case "V":   rowInfo.push(val);                      break;
+                    case "Q":   rowInfo.push(val);                      break;
                     case "L":   rowInfo.push(val? "1" : "0");           break;
-                    case "D":   rowInfo.push(dFormat.format(val));      break;
+                    case "D":
+                        if(isNaN(val))
+                            rowInfo.push("  /  /");
+                        else
+                            rowInfo.push(dFormat.format(val));
+                        break;
                     case "T":   if(col.len==4) { rowInfo.push(tFormat.format(val));      break;} //fallthrough
+                    case "=":
                     case "@":   rowInfo.push(dtFormat.format(val));     break;
-                    case "I": case "Y": case "+": case "^": case "B": case "Z": case "F":
-                    case "N":   rowInfo.push(val.toFixed(col.dec)); break;
+                    case "I": case "Y": case "+": case "^":
+                        if(typeof(val)=="bigint")
+                        rowInfo.push(val.toString());
+                        else
+                            rowInfo.push(val.toFixed(col.dec));
+                        break;
+                    case "B": case "Z": case "F": case "N":
+                        rowInfo.push(val.toFixed(col.dec));
+                        break;
                     case "V":
                         if(col.len==3)  { rowInfo.push(dFormat.format(val)); break; }
                         if(col.len==4)  { rowInfo.push(val.toFixed(col.dec)); break; }
@@ -126,7 +152,18 @@ class dbfCustomEditor {
                 }
 
             }
-            this.webviewPanel.webview.postMessage({ command: 'row', data: rowInfo, recno: row.recNo, deleted: row.deleted });
+            var cmd = { command: 'row' };
+            cmd.data = rowInfo;
+            cmd.recNo = row.recNo;
+            cmd.ordNo = row.ordNo;
+            cmd.deleted = row.deleted;
+            this.webviewPanel.webview.postMessage(cmd);
+        }
+        this.requestedRows = undefined;
+        this.document.onSortDone = () => {
+            if(this.requestedRows)
+                this.document.readRows(this.requestedRows[0],Math.min(this.requestedRows[1],this.document.info.nRecord));
+                this.requestedRows = undefined;
         }
     }
 
