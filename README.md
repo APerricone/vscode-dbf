@@ -11,6 +11,7 @@ This extension allow to view  ~~and edit~~ DBF table file file, usually created 
 ## Features
 
  * Support for very big file
+ * Sorting
 
 ## Todo
 
