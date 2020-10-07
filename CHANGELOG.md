@@ -4,6 +4,9 @@ All notable changes to the "vscode-dbf" extension will be documented in this fil
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.0.5]
+ - performance boost
+
 ## [0.0.4]
  - added support for multiple types and test
  - added sort
