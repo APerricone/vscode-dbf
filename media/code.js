@@ -209,8 +209,6 @@ function onScroll() {
     lastTop = tableCnt.scrollTop;
     if(oldFirst!=firstPos) {
         var minEmpty = 0, maxEmpty = nRows;
-        if(firstPos==3)
-            firstPos=firstPos;
         if(oldFirst<firstPos && oldFirst>firstPos-nRows) {
             var delta = firstPos - oldFirst;
             for(let i=0;i<nRows-delta;i++) copyRow(i, i+delta)

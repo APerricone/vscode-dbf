@@ -94,6 +94,9 @@ class dbfDocument {
         this.info.hasTags = data.readInt8(28); //
         this.info.codePage = data.readInt8(29);
         // 30 // spazio di 2
+        this.readingRow=[];
+        this.readingRow.length=this.info.nRecord+1;
+        this.readingRow.fill(false);
         /** @type {dbfColInfo[]} */
         this.colInfos = [];
         var nCol = (this.info.headerLen >> 5) - 1;
@@ -161,28 +164,61 @@ class dbfDocument {
         this.onReady(this);
     }
 
+    readBuff(start,end,cb) {
+        var readStart = this.info.headerLen + this.info.recordLen * (start - 1);
+        var readEnd = this.info.headerLen + this.info.recordLen * end;
+        var buffSize = this.info.recordLen*Math.ceil((64*1024)/this.info.recordLen);
+        var rs = fs.createReadStream(this.uri.fsPath, {
+            start:readStart,
+            end:readEnd-1,
+            highWaterMark: buffSize
+        })
+        //console.log(`asked ${start}-${end}`)
+        rs.on("data",(data)=>{
+            var readedEnd =  rs.start+rs.bytesRead;
+            var readedStart =  readedEnd - data.length;
+            var idx = ((readedStart-this.info.headerLen)/this.info.recordLen) | 0;
+            var pos = this.info.headerLen+idx*this.info.recordLen;
+            idx+=1;
+            var stopRead = Math.floor((readedEnd-this.info.headerLen)/this.info.recordLen);
+            stopRead = this.info.headerLen + stopRead * this.info.recordLen;
+            while(pos<stopRead) {
+                //console.log(`readed idx ${idx}`)
+                cb(idx,data,pos-readedStart)
+                idx++;
+                pos += this.info.recordLen;
+            }
+        });
+        return rs;
+    }
 
     readRows(start, end) {
-        var off = this.info.headerLen + this.info.recordLen * (start - 1)
-        var recordBuff = Buffer.alloc(this.info.recordLen);
-        var idx = start;
+        var readStart = start;
+        var readEnd = end;
         if (this.sortedIdx) {
-            off = this.info.headerLen + this.info.recordLen * (this.sortedIdx[idx-1] - 1)
+            readEnd = readStart = this.sortedIdx[start]
+            for(let i=start+1;i<=end;++i) {
+                var idx = this.sortedIdx[i]
+                if(idx<readStart) readStart=idx;
+                if(idx>readEnd) readEnd=idx;
+            }
         }
-        fs.open(this.uri.fsPath, 'r', (err, fd) => {
-            var cb = (err, nByte, buff) => {
-                this.readRowFromBuffer(idx, buff);
-                idx++;
-                if (this.sortedIdx) {
-                    off = this.info.headerLen + this.info.recordLen * (this.sortedIdx[idx-1] - 1)
-                } else off += this.info.recordLen;
-                if (idx <= end)
-                    fs.read(fd, recordBuff, 0, this.info.recordLen, off, cb);
-                else
-                    fs.close(fd);
-            };
-            fs.read(fd, recordBuff, 0, this.info.recordLen, off, cb);
-        });
+        while(readStart<this.readingRow.length && this.readingRow[readStart]) readStart++;
+        while(readEnd>0 && this.readingRow[readEnd]) readEnd--;
+        if(readStart>readEnd)
+            return;
+        this.readingRow.fill(true,readStart,readEnd+1)
+        this.readBuff(readStart,readEnd,(idx,data,off)=>{
+            this.readingRow[idx]=false;
+            var ordNo = idx;
+            var doIt = true;
+            if (this.sortedIdx) {
+                ordNo = this.sortedIdx.indexOf(idx)+1;
+                doIt = ordNo>=start && ordNo<=end;
+            } else
+                doIt = idx>=start && idx<=end;
+            if(doIt) this.readRowFromBuffer(idx, data, off,ordNo);
+        })
     }
 
     /**
@@ -300,15 +336,13 @@ class dbfDocument {
      * @param {Number} idx
      * @param {Buffer} data
      */
-    readRowFromBuffer(idx, data) {
+    readRowFromBuffer(idx, data,off,ordNo) {
         var ret = [];
-        ret.ordNo = idx;
-        if (this.sortedIdx)
-            ret.recNo = this.sortedIdx[idx-1];
-        else
-            ret.recNo = idx;
-        ret.deleted = String.fromCharCode(data.readInt8(0)) == '*';
-        var off = 1;
+        ret.recNo = idx;
+        ret.ordNo = ordNo;
+        off = off | 0;
+        ret.deleted = String.fromCharCode(data.readInt8(off)) == '*';
+        off += 1;
         for (let i = 0; i < this.colInfos.length; i++) {
             const col = this.colInfos[i];
             ret.push(this.readValueFromBuffer(data, off, col));
@@ -348,9 +382,7 @@ class dbfDocument {
     }
 
     sort(colId, desc) {
-        if (typeof (colId) == "undefined") {
-            // remove sort
-        }
+        this.readingRow.fill(false);
         // parameters validation
         if (typeof (colId) == "string") {
             var colname = colId;
@@ -375,29 +407,18 @@ class dbfDocument {
         var colData = Array(this.info.nRecord);
         var off = this.info.headerLen + colInfo.offset;
         var oldTime = Date.now()
-        //console.log((0)+" inizio sorting")
-        var rs = fs.createReadStream(this.uri.fsPath);
-        rs.on("data",(data)=>{
-            var end =  rs.bytesRead;
-            var start =  end - data.length;
-            var idx = ((start-off)/this.info.recordLen) | 0;
-            var pos = off+idx*this.info.recordLen;
-            while(pos<end) {
-                if(idx>=0 && idx<this.info.nRecord && pos>start) {
-                    colData[idx] = [this.readValueFromBuffer(data, pos-start, colInfo, true), idx+1];
-                }
-                idx++;
-                pos += this.info.recordLen;
-            }
-        })
+        //console.log("inizio sorting")
+        var rs = this.readBuff(1,this.info.nRecord,(idx,data,off)=>{
+            colData[idx] = [this.readValueFromBuffer(data, off+colInfo.offset, colInfo, true), idx];
+        });
         rs.on("close",()=>{
-            //console.log((Date.now()-oldTime)+" fine lettura");
+            //console.log(`${Date.now()-oldTime} fine lettura`);
             oldTime = Date.now();
             var sortFn = this.getCmpFunc(colInfo,this.sorted_desc);
-            //if (this.sorted_desc) sortFn = (a, b) => -sortFn(a,b); // brain-fuck
             colData.sort(sortFn);
             this.sortedIdx = colData.map((v)=>v[1]);
-            //console.log((Date.now()-oldTime)+" fine sort");
+            //console.log(`${Date.now()-oldTime} fine sort`);
+            this.sorting = false;
             this.onSortDone();
         });
     }
