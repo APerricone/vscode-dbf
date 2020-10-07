@@ -95,15 +95,7 @@ class dbfCustomEditor {
 
                 break;
             case "rows":
-                if(!this.document.sorting)
-                    this.document.readRows(message.min,Math.min(message.max,this.document.info.nRecord));
-                else {
-                    if(this.requestedRows)
-                        this.requestedRows = [  Math.min(this.requestedRows[0],message.min),
-                                                Math.max(this.requestedRows[1],message.max)]
-                    else
-                        this.requestedRows = [message.min,message.max];
-                }
+                this.document.readRows(message.min,Math.min(message.max,this.document.info.nRecord));
                 break;
             case "order":
                 this.document.sort(message.colId,message.desc);
@@ -171,11 +163,6 @@ class dbfCustomEditor {
             this.webviewPanel.webview.postMessage(cmd);
         }
         this.requestedRows = undefined;
-        this.document.onSortDone = () => {
-            if(this.requestedRows)
-                this.document.readRows(this.requestedRows[0],Math.min(this.requestedRows[1],this.document.info.nRecord));
-                this.requestedRows = undefined;
-        }
     }
 
     goto(val) {

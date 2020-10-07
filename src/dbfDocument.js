@@ -55,7 +55,6 @@ class dbfDocument {
         */
         this.sortedIdx = undefined; //
         this.sorting = undefined;
-        this.onSortDone = () => { };
         // Init
         this.readHeader();
     }
@@ -192,33 +191,35 @@ class dbfDocument {
         return rs;
     }
 
-    readRows(start, end) {
-        var readStart = start;
-        var readEnd = end;
-        if (this.sortedIdx) {
-            readEnd = readStart = this.sortedIdx[start]
-            for(let i=start+1;i<=end;++i) {
-                var idx = this.sortedIdx[i]
-                if(idx<readStart) readStart=idx;
-                if(idx>readEnd) readEnd=idx;
-            }
-        }
-        while(readStart<this.readingRow.length && this.readingRow[readStart]) readStart++;
-        while(readEnd>0 && this.readingRow[readEnd]) readEnd--;
-        if(readStart>readEnd)
-            return;
-        this.readingRow.fill(true,readStart,readEnd+1)
-        this.readBuff(readStart,readEnd,(idx,data,off)=>{
-            this.readingRow[idx]=false;
+    checkReadingBuff() {
+        if(this.sorting) return;
+        if(this.readingBuff) return;
+        var readBuffCB = (idx,data,off)=>{
+            if(!this.readingRow[idx]) return;
+            this.readingRow[idx] = false;
             var ordNo = idx;
-            var doIt = true;
-            if (this.sortedIdx) {
+            if (this.sortedIdx)
                 ordNo = this.sortedIdx.indexOf(idx)+1;
-                doIt = ordNo>=start && ordNo<=end;
-            } else
-                doIt = idx>=start && idx<=end;
-            if(doIt) this.readRowFromBuffer(idx, data, off,ordNo);
-        })
+            this.readRowFromBuffer(idx, data, off,ordNo);
+        };
+        var readStart = this.readingRow.indexOf(true);
+        if(readStart<0) return;
+        var readEnd = this.readingRow.lastIndexOf(true);
+        this.readingBuff = this.readBuff(readStart,readEnd,readBuffCB);
+        this.readingBuff.on("close", () => {
+            this.readingBuff=undefined
+            this.checkReadingBuff()
+        });
+    }
+
+    readRows(start, end) {
+        if (this.sortedIdx) {
+            for(let i=start;i<=end;++i) {
+                this.readingRow[this.sortedIdx[i]] = true;
+            }
+        } else
+            this.readingRow.fill(true,start,end+1)
+        this.checkReadingBuff()
     }
 
     /**
@@ -392,13 +393,12 @@ class dbfDocument {
         if (typeof (colId) != "number") throw "invalid parameter";
         if(this.sorting)
             this.sorting.destroy();
+        if(this.readingBuff)
+            this.readingBuff.destroy();
         if (colId < 0) {
-            if (this.onSortDone) {
-                this.sortCol = undefined;
-                this.sortedIdx = undefined;
-                this.sorting = undefined;
-                this.onSorted();
-            }
+            this.sortCol = undefined;
+            this.sortedIdx = undefined;
+            this.sorting = undefined;
             return;
         }
         this.sortCol = colId;
@@ -420,7 +420,11 @@ class dbfDocument {
             this.sortedIdx = colData.map((v)=>v[1]);
             //console.log(`${Date.now()-oldTime} fine sort`);
             this.sorting = undefined;
-            this.onSortDone();
+            var tmp = this.readingRow.slice();
+            this.readingRow.fill(false);
+            for(let i=0;i<tmp.length;i++)
+                if(tmp[i]) this.readingRow[this.sortedIdx[i]]=true;
+            this.checkReadingBuff()
         });
     }
 }
