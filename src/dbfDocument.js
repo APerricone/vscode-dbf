@@ -54,7 +54,7 @@ class dbfDocument {
          * @type {Number[]}
         */
         this.sortedIdx = undefined; //
-        this.sorting = false;
+        this.sorting = undefined;
         this.onSortDone = () => { };
         // Init
         this.readHeader();
@@ -177,7 +177,7 @@ class dbfDocument {
         rs.on("data",(data)=>{
             var readedEnd =  rs.start+rs.bytesRead;
             var readedStart =  readedEnd - data.length;
-            var idx = ((readedStart-this.info.headerLen)/this.info.recordLen) | 0;
+            var idx = Math.ceil((readedStart-this.info.headerLen)/this.info.recordLen);
             var pos = this.info.headerLen+idx*this.info.recordLen;
             idx+=1;
             var stopRead = Math.floor((readedEnd-this.info.headerLen)/this.info.recordLen);
@@ -390,35 +390,36 @@ class dbfDocument {
             if (codId < 0) throw colName + " not found";
         }
         if (typeof (colId) != "number") throw "invalid parameter";
+        if(this.sorting)
+            this.sorting.destroy();
         if (colId < 0) {
             if (this.onSortDone) {
                 this.sortCol = undefined;
                 this.sortedIdx = undefined;
-                this.sorting = false;
+                this.sorting = undefined;
                 this.onSorted();
             }
             return;
         }
         this.sortCol = colId;
         this.sorted_desc = Boolean(desc);
-        this.sorting = true;
         // read values
         var colInfo = this.colInfos[colId];
         var colData = Array(this.info.nRecord);
         var off = this.info.headerLen + colInfo.offset;
         var oldTime = Date.now()
         //console.log("inizio sorting")
-        var rs = this.readBuff(1,this.info.nRecord,(idx,data,off)=>{
+        this.sorting = this.readBuff(1,this.info.nRecord,(idx,data,off)=>{
             colData[idx] = [this.readValueFromBuffer(data, off+colInfo.offset, colInfo, true), idx];
         });
-        rs.on("close",()=>{
+        this.sorting.on("close",()=>{
             //console.log(`${Date.now()-oldTime} fine lettura`);
             oldTime = Date.now();
             var sortFn = this.getCmpFunc(colInfo,this.sorted_desc);
             colData.sort(sortFn);
             this.sortedIdx = colData.map((v)=>v[1]);
             //console.log(`${Date.now()-oldTime} fine sort`);
-            this.sorting = false;
+            this.sorting = undefined;
             this.onSortDone();
         });
     }
