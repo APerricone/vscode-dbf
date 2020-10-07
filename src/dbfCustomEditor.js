@@ -50,6 +50,7 @@ class dbfCustomEditor {
         }
     }
 
+    static pageHTML =undefined
     setup() {
         var src = path.join(this.context.extensionPath,"media","index.html");
         this.webviewPanel.webview.options= {
@@ -62,22 +63,31 @@ class dbfCustomEditor {
         });
 
         // eslint-disable-next-line no-unused-vars
-        return new Promise((resolve,reject) => {
-            fs.readFile(src, {"encoding": "utf-8"}, (err,data) => {
-                data = data.replace(/\$\{webview\.cspSource\}/g,this.webviewPanel.webview.cspSource)
-                data = data.replace(/\$\{baseUri\}/g,this.webviewPanel.webview.asWebviewUri(
-                    this.webviewPanel.webview.options.localResourceRoots[0]
-                ))
-                this.webviewPanel.webview.html = data;
-                resolve();
-            });
-        });
+        if(dbfCustomEditor.pageHTML) {
+            var data = dbfCustomEditor.pageHTML.replace(/\$\{webview\.cspSource\}/g,this.webviewPanel.webview.cspSource)
+            data = data.replace(/\$\{baseUri\}/g,this.webviewPanel.webview.asWebviewUri(
+                this.webviewPanel.webview.options.localResourceRoots[0]            ))
 
+            this.webviewPanel.webview.html = data;
+        } else
+            return new Promise((resolve,reject) => {
+                fs.readFile(src, {"encoding": "utf-8"}, (err,data) => {
+                    dbfCustomEditor.pageHTML = data;
+                    data = data.replace(/\$\{webview\.cspSource\}/g,this.webviewPanel.webview.cspSource)
+                    data = data.replace(/\$\{baseUri\}/g,this.webviewPanel.webview.asWebviewUri(
+                        this.webviewPanel.webview.options.localResourceRoots[0]
+                    ))
+
+                    this.webviewPanel.webview.html = data;
+                    resolve();
+                });
+            });
     }
 
     onMessage(message) {
         switch (message.command) {
             case "ready":
+                //console.log("ready")
                 if(this.document.ready) {
                     this.fillWebPanel();
                 } else
@@ -107,6 +117,7 @@ class dbfCustomEditor {
         if(!this.document.ready) {
             throw "document not ready"
         }
+        //console.log(`send Info ${this.document.ready} - ${this.document.colInfos.length} - ${this.document.info.nRecord} `)
         this.webviewPanel.webview.postMessage({ command: 'info', data: this.document.info, cols: this.document.colInfos });
         // write header
         var dateOpt = { year: "numeric", month: "2-digit", day: "2-digit"};

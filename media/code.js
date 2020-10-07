@@ -189,6 +189,7 @@ function onScroll() {
 
     // hide and show rows based on current height
     var firstPos = Math.floor(tableCnt.scrollTop / h2);
+    var minEmpty = dbfInfo.nRecord, maxEmpty = 0;
     for(let i=0;i<totalRows;i++) {
         var dest = document.getElementById("row"+(i+1));
         if(dest) {
@@ -199,11 +200,15 @@ function onScroll() {
                 dest.classList.remove("filled");
             } else {
                 dest.style.display = "table-row";
-                if(dest.classList.contains("empty"))
-                    vscode.postMessage({"command": "rows", "min":n, "max": n});
+                if(dest.classList.contains("empty")) {
+                    if(n<minEmpty) minEmpty=n;
+                    if(n>maxEmpty) maxEmpty=n;
+                }
             }
         }
     }
+    if(minEmpty<=maxEmpty)
+        vscode.postMessage({"command": "rows", "min":minEmpty, "max": maxEmpty});
     // move the current rows
     var oldFirst = Math.floor(lastTop / h2);
     lastTop = tableCnt.scrollTop;
