@@ -374,32 +374,32 @@ class dbfDocument {
         var colInfo = this.colInfos[colId];
         var colData = Array(this.info.nRecord);
         var off = this.info.headerLen + colInfo.offset;
-        var recordBuff = Buffer.alloc(colInfo.len);
-        var idx = 1;
-        var readed;
-        fs.open(this.uri.fsPath, 'r', (err, fd) => {
-            var cb = (err, nByte, buff) => {
-                colData[idx - 1] = [this.readValueFromBuffer(buff, 0, colInfo, true), idx];
-                idx++;
-                off += this.info.recordLen;
-                if (idx <= this.info.nRecord)
-                    fs.read(fd, recordBuff, 0, colInfo.len, off, cb);
-                else {
-                    fs.close(fd);
-                    readed();
+        var oldTime = Date.now()
+        //console.log((0)+" inizio sorting")
+        var rs = fs.createReadStream(this.uri.fsPath);
+        rs.on("data",(data)=>{
+            var end =  rs.bytesRead;
+            var start =  end - data.length;
+            var idx = ((start-off)/this.info.recordLen) | 0;
+            var pos = off+idx*this.info.recordLen;
+            while(pos<end) {
+                if(idx>=0 && idx<this.info.nRecord && pos>start) {
+                    colData[idx] = [this.readValueFromBuffer(data, pos-start, colInfo, true), idx+1];
                 }
-            };
-            fs.read(fd, recordBuff, 0, colInfo.len, off, cb);
-        });
-        // all record readed
-        readed = () => {
+                idx++;
+                pos += this.info.recordLen;
+            }
+        })
+        rs.on("close",()=>{
+            //console.log((Date.now()-oldTime)+" fine lettura");
+            oldTime = Date.now();
             var sortFn = this.getCmpFunc(colInfo,this.sorted_desc);
             //if (this.sorted_desc) sortFn = (a, b) => -sortFn(a,b); // brain-fuck
             colData.sort(sortFn);
             this.sortedIdx = colData.map((v)=>v[1]);
+            //console.log((Date.now()-oldTime)+" fine sort");
             this.onSortDone();
-        }
-
+        });
     }
 }
 exports.dbfDocument = dbfDocument;
