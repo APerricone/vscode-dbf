@@ -15,7 +15,7 @@ function activate(context) {
 	let disposable = vscode.commands.registerCommand('vscode-dbf.goto', function () {
 		/** @type {dbfCustomEditor} */
 		var editor = dbfCustomEditor.getCurrentEditor();
-		if(!editor) {
+		vscodif(!editor) {
 			vscode.window.showInformationMessage('This command works only when a DBF is open.');
 			return;
 		}

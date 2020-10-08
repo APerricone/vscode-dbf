@@ -215,7 +215,7 @@ class dbfDocument {
     readRows(start, end) {
         if (this.sortedIdx) {
             for(let i=start;i<=end;++i) {
-                this.readingRow[this.sortedIdx[i]] = true;
+                this.readingRow[this.sortedIdx[i-1]] = true;
             }
         } else
             this.readingRow.fill(true,start,end+1)
@@ -410,7 +410,7 @@ class dbfDocument {
         var oldTime = Date.now()
         //console.log("inizio sorting")
         this.sorting = this.readBuff(1,this.info.nRecord,(idx,data,off)=>{
-            colData[idx] = [this.readValueFromBuffer(data, off+colInfo.offset, colInfo, true), idx];
+            colData[idx-1] = [this.readValueFromBuffer(data, off+colInfo.offset, colInfo, true), idx];
         });
         this.sorting.on("close",()=>{
             //console.log(`${Date.now()-oldTime} fine lettura`);
@@ -423,7 +423,7 @@ class dbfDocument {
             var tmp = this.readingRow.slice();
             this.readingRow.fill(false);
             for(let i=0;i<tmp.length;i++)
-                if(tmp[i]) this.readingRow[this.sortedIdx[i]]=true;
+                if(tmp[i]) this.readingRow[this.sortedIdx[i-1]]=true;
             this.checkReadingBuff()
         });
     }

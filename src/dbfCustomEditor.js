@@ -6,7 +6,6 @@ const { type } = require('os');
 
 var dbfCurrentEditor;
 /**
- * @extends vscode.CustomReadonlyEditorProvider
  */
 class dbfCustomEditor {
 
@@ -166,6 +165,9 @@ class dbfCustomEditor {
     }
 
     goto(val) {
+        if(this.document.sortedIdx) {
+            val = this.document.sortedIdx.indexOf(val)+1;
+        }
         this.webviewPanel.webview.postMessage({ command: 'goto', data: val });
     }
 };
