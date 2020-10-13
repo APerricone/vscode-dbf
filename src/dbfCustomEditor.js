@@ -97,7 +97,7 @@ class dbfCustomEditor {
                 this.document.readRows(message.min,Math.min(message.max,this.document.info.nRecord));
                 break;
             case "order":
-                this.document.sort(message.colId,message.desc);
+                this.document.sort(message.colId,message.desc,message.filters);
                 break;
             default:
                 break;

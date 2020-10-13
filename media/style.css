@@ -115,6 +115,22 @@ body {
     100%{background-position:0% 50%}
 }
 
+input {
+    background-color: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    font-family: var(--vscode-font-family);
+    font-weight: var(--vscode-font-weight);
+    font-size: var(--vscode-font-size);
+    width: 100%;
+    margin: 0;
+    border: 0;
+    padding: 0;
+
+}
+::placeholder {
+    color: var(--vscode-input-placeholderForeground);
+}
+
 .selected {
     background-color: var(--vscode-editor-hoverHighlightBackground);
 }

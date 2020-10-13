@@ -57,33 +57,44 @@ function info() {
 }
 
 function header(data) {
-    var dest = document.getElementsByTagName("thead");
-    dest = dest[0].children[0];
+    var head = document.getElementsByTagName("thead")[0];
+    if(head.children.length>0) return;
+    var dest = document.createElement("tr");
+    head.appendChild(dest);
+    var filters = document.createElement("tr");
+    head.appendChild(filters);
 
     var cell = document.createElement("th");
     cell.className = "noborder";
     dest.appendChild(cell);
+    cell = document.createElement("th");
+    cell.className = "noborder";
+    filters.appendChild(cell);
 
+    var row = [dest,filters];
     for (let id = 0; id < data.length; id++) {
-        /** @type {HTMLElement} */
-        var cell = document.createElement("th");
-        cell.textContent = data[id].name;
-        cell.title = data[id].name;
-        cell.style.width = cell.style.maxWidth = cell.style.minWidth = data[id].len+"ch";
-        cell.style.overflow = "hidden";
-        switch(data[id].type) {
-            case "D":
-                cell.style.width = cell.style.maxWidth = cell.style.minWidth = "10ch";
-                break;
-            case "T":
-                cell.style.width = cell.style.maxWidth = cell.style.minWidth = "8ch";
-                break;
-            case "@":
-                cell.style.width = cell.style.maxWidth = cell.style.minWidth = "22ch";
-                break;
+        for(let i=0;i<2;i++) {
+            var cell = document.createElement("th");
+            var w = data[id].len;
+            cell.style.overflow = "hidden";
+            switch(data[id].type) {
+                case "D": w=10; break;
+                case "T": w= 8; break;
+                case "@": w=22; break;
             }
-        cell.onclick=changeOrder
-        dest.appendChild(cell);
+            cell.style.width = cell.style.maxWidth = cell.style.minWidth = w+"ch";
+            if(i==0) {
+                cell.onclick=changeOrder;
+                cell.title = data[id].name;
+                cell.textContent = data[id].name;
+             }else {
+                cell.style.padding="0";
+                var inp = document.createElement("input")
+                inp.addEventListener("change",addFilter)
+                cell.appendChild(inp);
+            }
+            row[i].appendChild(cell);
+        }
     }
 }
 
@@ -282,11 +293,16 @@ function goto(line) {
     onScroll();
 }
 
+var filterTimer;
 /**
  *
  * @param {MouseEvent} evt
  */
 function changeOrder(evt) {
+    if(filterTimer) {
+        clearTimeout(filterTimer);
+        filterTimer=undefined;
+    }
     /** @type{HTMLElement} */
     var element = evt.target;
     var index = Array.prototype.indexOf.call(element.parentNode.children, element);
@@ -313,6 +329,53 @@ function changeOrder(evt) {
         }
     }
     vscode.postMessage({"command": "order", "colId": index-1, "desc": sortOrder=="desc"});
+    //onScroll();
+    var tableCnt = document.getElementById("table-cnt");
+    var h1 = document.body.clientHeight
+    var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;;
+    var nRows = Math.floor(h1/h2)-1;
+    var firstPos = Math.floor(tableCnt.scrollTop / h2);
+    vscode.postMessage({"command": "rows", "min":(firstPos), "max": (firstPos+nRows)});
+}
+
+function addFilter(ev) {
+    if(filterTimer) {
+        clearTimeout(filterTimer);
+        filterTimer=undefined;
+    }
+    filterTimer = setTimeout(askFilterUpdate,100);
+}
+
+function askFilterUpdate() {
+    var header = document.getElementsByTagName("thead")[0];
+    var sortIdx  = Array.prototype.findIndex.call(
+            header.children[0].children, (v) => {
+                v.classList.contains("sort-asc") ||
+                v.classList.contains("sort-desc")
+            } );
+    var sortDesc = false;
+    if(sortIdx>=0) {
+        sortDesc = header.children[0].children[sortIdx].classList.contains("sort-desc");
+    }
+
+    for(let i=0;i<totalRows;i++) {
+        var dest = document.getElementById("row"+(i+1));
+        if(dest) {
+            dest.classList.add("empty");
+            dest.classList.remove("filled");
+        }
+    }
+    var orderCmd = {"command": "order", "colId": sortIdx-1, "desc": sortDesc};
+    orderCmd.filters = {};
+    for(let i=1;i<header.children[1].children.length;++i) {
+        let cell = header.children[1].children[i];
+        /** @type {HTMLInputElement} */
+        let inp = cell.children[0];
+        if(inp.value!="") {
+            orderCmd.filters[i-1] = inp.value;
+        }
+    }
+    vscode.postMessage(orderCmd);
     //onScroll();
     var tableCnt = document.getElementById("table-cnt");
     var h1 = document.body.clientHeight

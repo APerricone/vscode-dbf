@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const fs = require('fs');
+const { type } = require('os');
 
 /**
  * Harbour\include\hbdbf.h
@@ -163,6 +164,21 @@ class dbfDocument {
         this.onReady(this);
     }
 
+    /**
+     * Callback for readed row
+     * @callback readBuffCallback
+     * (Number,Buffer,off)
+     * @param {Number} idx index of readed row
+     * @param {Buff} data readed buffer
+     * @param {Number} off start offset in data of row
+     */
+
+    /**
+     * Internal method to read a group of rows
+     * @param {Number} start start index of first row to read
+     * @param {Number} end index of the last row to read
+     * @param {readBuffCallback} cb Callback
+     */
     readBuff(start,end,cb) {
         var readStart = this.info.headerLen + this.info.recordLen * (start - 1);
         var readEnd = this.info.headerLen + this.info.recordLen * end;
@@ -191,6 +207,10 @@ class dbfDocument {
         return rs;
     }
 
+    /**
+     * Internal method to read requested rows
+     * @private
+     */
     checkReadingBuff() {
         if(this.sorting) return;
         if(this.readingBuff) return;
@@ -200,7 +220,10 @@ class dbfDocument {
             var ordNo = idx;
             if (this.sortedIdx)
                 ordNo = this.sortedIdx.indexOf(idx)+1;
-            this.readRowFromBuffer(idx, data, off,ordNo);
+            var rowInfo = this.readRowFromBuffer(data, off);
+            rowInfo.recNo = idx;
+            rowInfo.ordNo = ordNo;
+            this.onRow(rowInfo);
         };
         var readStart = this.readingRow.indexOf(true);
         if(readStart<0) return;
@@ -334,13 +357,11 @@ class dbfDocument {
 
     /**
      *
-     * @param {Number} idx
-     * @param {Buffer} data
+     * @param {Buffer} data source buffer
+     * @param {Number} [off] starting index for reading
      */
-    readRowFromBuffer(idx, data,off,ordNo) {
+    readRowFromBuffer(data,off) {
         var ret = [];
-        ret.recNo = idx;
-        ret.ordNo = ordNo;
         off = off | 0;
         ret.deleted = String.fromCharCode(data.readInt8(off)) == '*';
         off += 1;
@@ -349,18 +370,20 @@ class dbfDocument {
             ret.push(this.readValueFromBuffer(data, off, col));
             off += col.len;
         }
-        this.onRow(ret);
+        return ret;
     }
 
     /**
      *
      * @param {dbfColInfo} col
+     * @param {boolean} desc
+     * @param {Intl.Collator} coll
      */
-    getCmpFunc(col,desc) {
+    getCmpFunc(col,desc,coll) {
         var v = desc? -1 : 1;
         switch (col.type) {
             case "C": case "Q":
-                return (a, b) => a[0] < b[0] ? -v : a[0] > b[0] ? v : 0;
+                return (a, b) => v*coll.compare(a,b); //a[0] < b[0] ? -v : a[0] > b[0] ? v : 0;
             case "L":
                 return (a, b) => a[0] == b[0] ? 0 : a[0] ? v : -v;
             case "D":
@@ -382,7 +405,7 @@ class dbfDocument {
         }
     }
 
-    sort(colId, desc) {
+    sort(colId, desc,filters) {
         this.readingRow.fill(false);
         // parameters validation
         if (typeof (colId) == "string") {
@@ -393,37 +416,78 @@ class dbfDocument {
         if (typeof (colId) != "number") throw "invalid parameter";
         if(this.sorting)
             this.sorting.destroy();
+        this.sorting = undefined;
         if(this.readingBuff)
             this.readingBuff.destroy();
-        if (colId < 0) {
+        var hasFilter=false;
+        var stringCompare = new Intl.Collator(vscode.env.language,{usage: "search", sensitivity:"base"})
+        for(let f in filters) {
+            var idx = parseInt(f);
+            if(filters[f].length>0 && idx>=0 && idx<this.colInfos.length) {
+                hasFilter=true;
+                switch (this.colInfos[idx].type) {
+                    case "C":
+                        filters[idx]=filters[idx].toLowerCase();
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+        }
+        if(colId<0) colId=undefined;
+        if (!colId && !hasFilter) {
             this.sortCol = undefined;
             this.sortedIdx = undefined;
-            this.sorting = undefined;
             return;
         }
         this.sortCol = colId;
         this.sorted_desc = Boolean(desc);
         // read values
-        var colInfo = this.colInfos[colId];
+        var sortColInfo = colId? this.colInfos[colId] : undefined;
         var colData = Array(this.info.nRecord);
-        var off = this.info.headerLen + colInfo.offset;
+        var nRow = 0;
         var oldTime = Date.now()
         //console.log("inizio sorting")
         this.sorting = this.readBuff(1,this.info.nRecord,(idx,data,off)=>{
-            colData[idx-1] = [this.readValueFromBuffer(data, off+colInfo.offset, colInfo, true), idx];
+            var rowOK = true;
+            if(hasFilter) {
+                var rowInfo = this.readRowFromBuffer(data, off);
+                for(let f in filters) {
+                    if(filters[f].length>0 & f>=0 && f<rowInfo.length) {
+                        switch (typeof(rowInfo[f])) {
+                            case "string":
+                                //rowOK = rowOK && (stringCompare.compare(rowInfo[f],filters[f])==0);
+                                rowOK = rowOK && (rowInfo[f].toLowerCase().indexOf(filters[f])>=0);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+
+                }
+            }
+            if(rowOK) {
+                colData[nRow] = [sortColInfo? this.readValueFromBuffer(data, off+sortColInfo.offset, sortColInfo, true) : undefined, idx];
+                nRow++;
+            }
         });
         this.sorting.on("close",()=>{
             //console.log(`${Date.now()-oldTime} fine lettura`);
             oldTime = Date.now();
-            var sortFn = this.getCmpFunc(colInfo,this.sorted_desc);
-            colData.sort(sortFn);
+            colData.length = nRow;
+            if(sortColInfo) {
+                var sortFn = this.getCmpFunc(sortColInfo,this.sorted_desc,stringCompare);
+                colData.sort(sortFn);
+            }
             this.sortedIdx = colData.map((v)=>v[1]);
             //console.log(`${Date.now()-oldTime} fine sort`);
-            this.sorting = undefined;
             var tmp = this.readingRow.slice();
             this.readingRow.fill(false);
             for(let i=0;i<tmp.length;i++)
-                if(tmp[i]) this.readingRow[this.sortedIdx[i-1]]=true;
+                if(tmp[i])
+                    this.readingRow[this.sortedIdx[i-1]]=true;
+            this.sorting = undefined;
             this.checkReadingBuff()
         });
     }
