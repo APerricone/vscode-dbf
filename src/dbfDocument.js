@@ -56,6 +56,7 @@ class dbfDocument {
         */
         this.sortedIdx = undefined; //
         this.sorting = undefined;
+        this.onSort = () => {}
         // Init
         this.readHeader();
     }
@@ -180,6 +181,7 @@ class dbfDocument {
      * @param {readBuffCallback} cb Callback
      */
     readBuff(start,end,cb) {
+        start = start < 1 ? 1 : start;
         var readStart = this.info.headerLen + this.info.recordLen * (start - 1);
         var readEnd = this.info.headerLen + this.info.recordLen * end;
         var buffSize = this.info.recordLen*Math.ceil((64*1024)/this.info.recordLen);
@@ -439,6 +441,8 @@ class dbfDocument {
         if (!colId && !hasFilter) {
             this.sortCol = undefined;
             this.sortedIdx = undefined;
+            this.onSort();
+            this.checkReadingBuff()
             return;
         }
         this.sortCol = colId;
@@ -488,6 +492,7 @@ class dbfDocument {
                 if(tmp[i])
                     this.readingRow[this.sortedIdx[i-1]]=true;
             this.sorting = undefined;
+            this.onSort();
             this.checkReadingBuff()
         });
     }

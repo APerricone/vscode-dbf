@@ -98,6 +98,11 @@ class dbfCustomEditor {
                 break;
             case "order":
                 this.document.sort(message.colId,message.desc,message.filters);
+                this.document.onSort = () => {
+                    this.webviewPanel.webview.postMessage({
+                        command: 'totalRow', nFilteredRow:
+                            this.document.sortedIdx? this.document.sortedIdx.length : this.document.info.nRecord });
+                }
                 break;
             default:
                 break;

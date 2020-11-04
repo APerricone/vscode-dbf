@@ -17,6 +17,8 @@ window.addEventListener("message", ev => {
         case "goto":
             goto(ev.data.data);
             break;
+        case "totalRow":
+            resize(ev.data.nFilteredRow)
         }
 });
 
@@ -90,7 +92,7 @@ function header(data) {
              }else {
                 cell.style.padding="0";
                 var inp = document.createElement("input")
-                inp.addEventListener("change",addFilter)
+                inp.addEventListener("keyup",addFilter)
                 cell.appendChild(inp);
             }
             row[i].appendChild(cell);
@@ -102,7 +104,7 @@ function setupRows() {
     var body = document.getElementsByTagName("tbody")[0];
     body.innerHTML="";
     var h1 = screen.height //document.getElementsByTagName("body")[0].clientHeight
-    var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;;
+    var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;
     totalRows = Math.floor(h1/h2)-1;
     document.getElementById("empty-scroll").style.height = (h2*(dbfInfo.nRecord+2)).toFixed(0)+"px";
     for(let i=0;i<totalRows;i++) {
@@ -138,10 +140,13 @@ function setupRows() {
     }
     h1=document.getElementsByTagName("body")[0].clientHeight
 
-    vscode.postMessage({"command": "rows", "min":1, "max": Math.floor(h1/h2)-1});
+    var n = Math.floor(h1/h2)-1;
+    console.debug("ask rows 1-"+n)
+    vscode.postMessage({"command": "rows", "min":1, "max": n});
 }
 
 function row(idx,recNo,data,deleted) {
+    console.debug("<row-" + idx + "-" + recNo)
     var h2 = document.getElementById("row1").clientHeight
     var tableCnt = document.getElementById("table-cnt");
     var firstPos = Math.floor(tableCnt.scrollTop / h2);
@@ -218,8 +223,10 @@ function onScroll() {
             }
         }
     }
-    if(minEmpty<=maxEmpty)
+    if(minEmpty<=maxEmpty) {
+        console.debug("ask rows "+minEmpty+"-"+maxEmpty)
         vscode.postMessage({"command": "rows", "min":minEmpty, "max": maxEmpty});
+    }
     // move the current rows
     var oldFirst = Math.floor(lastTop / h2);
     lastTop = tableCnt.scrollTop;
@@ -242,8 +249,12 @@ function onScroll() {
                 dest.children[0].textContent = (i+1+firstPos)+"";
             }
         }
-        if(minEmpty<=maxEmpty)
-            vscode.postMessage({"command": "rows", "min":(minEmpty+1+firstPos), "max": (maxEmpty+1+firstPos)});
+        if(minEmpty<=maxEmpty) {
+            minEmpty+=1+firstPos;
+            maxEmpty+=1+firstPos;
+            console.debug("ask rows "+minEmpty+"-"+maxEmpty)
+            vscode.postMessage({"command": "rows", "min":minEmpty, "max": maxEmpty});
+        }
 
     }
 }
@@ -328,13 +339,29 @@ function changeOrder(evt) {
             dest.classList.remove("filled");
         }
     }
-    vscode.postMessage({"command": "order", "colId": index-1, "desc": sortOrder=="desc"});
-    //onScroll();
+    askFilterUpdate()
+}
+
+function resize(nRow) {
+    console.debug("resize "+nRow)
+    var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;
+    document.getElementById("empty-scroll").style.height = (h2*(nRow+2)).toFixed(0)+"px";
+    for(let i=0;i<totalRows;i++) {
+        var dest = document.getElementById("row"+(i+1));
+        if(dest) {
+            if(i<nRow)
+                dest.style.display="table-row";
+            else
+                dest.style.display="none"
+        }
+    }
+
     var tableCnt = document.getElementById("table-cnt");
     var h1 = document.body.clientHeight
     var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;;
     var nRows = Math.floor(h1/h2)-1;
     var firstPos = Math.floor(tableCnt.scrollTop / h2);
+    console.debug("ask rows "+firstPos+"-"+(firstPos+nRows))
     vscode.postMessage({"command": "rows", "min":(firstPos), "max": (firstPos+nRows)});
 }
 
@@ -350,8 +377,8 @@ function askFilterUpdate() {
     var header = document.getElementsByTagName("thead")[0];
     var sortIdx  = Array.prototype.findIndex.call(
             header.children[0].children, (v) => {
-                v.classList.contains("sort-asc") ||
-                v.classList.contains("sort-desc")
+                return v.classList.contains("sort-asc") ||
+                       v.classList.contains("sort-desc")
             } );
     var sortDesc = false;
     if(sortIdx>=0) {
@@ -375,12 +402,6 @@ function askFilterUpdate() {
             orderCmd.filters[i-1] = inp.value;
         }
     }
+    console.debug("ask order "+sortIdx+" + filters "+orderCmd.filters.length)
     vscode.postMessage(orderCmd);
-    //onScroll();
-    var tableCnt = document.getElementById("table-cnt");
-    var h1 = document.body.clientHeight
-    var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;;
-    var nRows = Math.floor(h1/h2)-1;
-    var firstPos = Math.floor(tableCnt.scrollTop / h2);
-    vscode.postMessage({"command": "rows", "min":(firstPos), "max": (firstPos+nRows)});
 }
