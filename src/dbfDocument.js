@@ -2,6 +2,37 @@ const vscode = require('vscode');
 const fs = require('fs');
 const { type } = require('os');
 
+/*
+ * dbf columns types:
+ * 'C' Character - String
+ * 'Q' Variable len character - String
+ * 'L' Logical - Boolean
+ * 'D' Date
+ * 'T' Time, if len is 4, datetime otherwide
+ * '@' Date time
+ * '=' Mod type
+ * 'I' Integer
+ * 'Y' Currency (fixed decimal)
+ * '2' Integer len 2
+ * '4' Integer len 4
+ * '+' Auto increment (integer)
+ * '^' auto increment Row ver (integer)
+ * '8', 'B','Z' double
+ * 'N' Number
+ * 'F' float
+ * 'V' Variable:
+ *   len 3 - Date
+ *   len 4 - Integer
+ * 'M' Memo type - UNSUPPORTED
+ * 'P' Picture - Image - UNSUPPORTED
+ *
+ * javascript type -> DBF types
+ * String - 'C', 'Q',
+ * Number - 'N', 'I', 'Y', '2', '4', '+', '^', '8', 'B', 'Z', 'V4'
+ * Boolean - 'L'
+ * Object Date - 'D', 'T', '@', '='
+ */
+
 /**
  * Harbour\include\hbdbf.h
  * @typedef {Object} dbfHeader
@@ -370,6 +401,8 @@ class dbfDocument {
         for (let i = 0; i < this.colInfos.length; i++) {
             const col = this.colInfos[i];
             ret.push(this.readValueFromBuffer(data, off, col));
+            if(!('jstype' in col))
+                col.jstype = typeof(ret[ret.length-1]);
             off += col.len;
         }
         return ret;
@@ -427,11 +460,13 @@ class dbfDocument {
             var idx = parseInt(f);
             if(filters[f].length>0 && idx>=0 && idx<this.colInfos.length) {
                 hasFilter=true;
-                switch (this.colInfos[idx].type) {
-                    case "C":
+                switch (this.colInfos[idx].jstype) {
+                    case "string":
                         filters[idx]=filters[idx].toLowerCase();
                         break;
-
+                    case "number":
+                        filters[idx]=parseFloat(filters[idx].replace(/,/g,"."))
+                        break;
                     default:
                         break;
                 }
@@ -458,11 +493,15 @@ class dbfDocument {
             if(hasFilter) {
                 var rowInfo = this.readRowFromBuffer(data, off);
                 for(let f in filters) {
-                    if(filters[f].length>0 & f>=0 && f<rowInfo.length) {
+                    if(f>=0 && f<rowInfo.length) {
                         switch (typeof(rowInfo[f])) {
                             case "string":
                                 //rowOK = rowOK && (stringCompare.compare(rowInfo[f],filters[f])==0);
-                                rowOK = rowOK && (rowInfo[f].toLowerCase().indexOf(filters[f])>=0);
+                                if(filters[f].length>0)
+                                    rowOK = rowOK && (rowInfo[f].toLowerCase().indexOf(filters[f])>=0);
+                                break;
+                            case "number":
+                                rowOK = rowOK && (rowInfo[f] == filters[f]);
                                 break;
                             default:
                                 break;
