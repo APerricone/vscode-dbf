@@ -58,7 +58,7 @@ function info() {
     onScroll();
 }
 
-function header(data) {
+function header(colInfo) {
     var head = document.getElementsByTagName("thead")[0];
     if(head.children.length>0) return;
     var dest = document.createElement("tr");
@@ -74,26 +74,33 @@ function header(data) {
     filters.appendChild(cell);
 
     var row = [dest,filters];
-    for (let id = 0; id < data.length; id++) {
+    for (let id = 0; id < colInfo.length; id++) {
         for(let i=0;i<2;i++) {
             var cell = document.createElement("th");
-            var w = data[id].len;
+            var w = colInfo[id].len;
             cell.style.overflow = "hidden";
-            switch(data[id].type) {
+            switch(colInfo[id].type) {
                 case "D": w=10; break;
                 case "T": w= 8; break;
                 case "@": w=22; break;
             }
-            if(data[id].type=="L")
+            if(colInfo[id].type=="L")
                 cell.style.width = cell.style.maxWidth = cell.style.minWidth = "18px";
             else
                 cell.style.width = cell.style.maxWidth = cell.style.minWidth = w+"ch";
 
             if(i==0) {
                 cell.onclick=changeOrder;
-                cell.title = data[id].name;
-                cell.textContent = data[id].name;
-             }else {
+                cell.title = colInfo[id].name;
+                cell.textContent = colInfo[id].name;
+             } else if(colInfo[id].type=="L") {
+                cell.style.padding="0";
+                var inp = document.createElement("div")
+                inp.classList.add("codicon","checkbox","codicon-check-3rd-state");
+                inp.style.cursor = "pointer";
+                inp.addEventListener("click",checkBoxEvt)
+                cell.appendChild(inp);
+             } else {
                 cell.style.padding="0";
                 var inp = document.createElement("input")
                 inp.addEventListener("keyup",addFilter)
@@ -375,6 +382,24 @@ function resize(nRow) {
     vscode.postMessage({"command": "rows", "min":(firstPos), "max": (firstPos+nRows)});
 }
 
+function checkBoxEvt(ev) {
+    if(ev.target.classList.contains("codicon-check-3rd-state")) {
+        ev.target.classList.remove("codicon-check-3rd-state")
+        ev.target.classList.add("codicon-check")
+    } else if(ev.target.classList.contains("codicon-check")) {
+        ev.target.classList.remove("codicon-check")
+        ev.target.classList.add("codicon-uncheck")
+    } else {
+        ev.target.classList.add("codicon-check-3rd-state")
+        ev.target.classList.remove("codicon-uncheck")
+    }
+    if(filterTimer) {
+        clearTimeout(filterTimer);
+        filterTimer=undefined;
+    }
+    filterTimer = setTimeout(askFilterUpdate,100);
+}
+
 function addFilter(ev) {
     if(filterTimer) {
         clearTimeout(filterTimer);
@@ -406,10 +431,19 @@ function askFilterUpdate() {
     orderCmd.filters = {};
     for(let i=1;i<header.children[1].children.length;++i) {
         let cell = header.children[1].children[i];
-        /** @type {HTMLInputElement} */
+        /** @type {HTMLInputElement|HTMLDivElement} */
         let inp = cell.children[0];
-        if(inp.value!="") {
-            orderCmd.filters[i-1] = inp.value;
+        if(inp.className=="HTMLInputElement") {
+            if(inp.value!="") {
+                orderCmd.filters[i-1] = inp.value;
+            }
+        } else {
+            if(inp.classList.contains("codicon-uncheck")) {
+                orderCmd.filters[i-1] = false;
+            }
+            if(inp.classList.contains("codicon-check")) {
+                orderCmd.filters[i-1] = true;
+            }
         }
     }
     console.debug("ask order "+sortIdx+" + filters "+orderCmd.filters.length)

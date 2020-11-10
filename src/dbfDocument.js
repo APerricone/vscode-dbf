@@ -433,8 +433,6 @@ class dbfDocument {
         for (let i = 0; i < this.colInfos.length; i++) {
             const col = this.colInfos[i];
             ret.push(this.readValueFromBuffer(data, off, col));
-            if(!('jstype' in col))
-                col.jstype = typeof(ret[ret.length-1]);
             off += col.len;
         }
         return ret;
@@ -490,14 +488,24 @@ class dbfDocument {
         var stringCompare = new Intl.Collator(vscode.env.language,{usage: "search", sensitivity:"base"})
         for(let f in filters) {
             var idx = parseInt(f);
-            if(filters[f].length>0 && idx>=0 && idx<this.colInfos.length) {
-                hasFilter=true;
-                switch (this.colInfos[idx].jstype) {
-                    case "string":
-                        filters[idx]=filters[idx].toLowerCase();
+            if(idx>=0 && idx<this.colInfos.length) {
+                switch (this.colInfos[idx].baseType) {
+                    case "C":
+                        if(filters[f].length>0) {
+                            hasFilter=true;
+                            filters[idx]=filters[idx].toLowerCase();
+                        }
                         break;
-                    case "number":
-                        filters[idx]=parseFloat(filters[idx].replace(/,/g,"."))
+                    case "N":
+                        if(filters[f].length>0) {
+                            hasFilter=true;
+                            filters[idx]=parseFloat(filters[idx].replace(/,/g,"."))
+                        }
+                        break;
+                    case "L":
+                        if(typeof(filters[f])=="boolean") {
+                            hasFilter=true;
+                        }
                         break;
                     default:
                         break;
@@ -528,12 +536,18 @@ class dbfDocument {
                     if(f>=0 && f<rowInfo.length) {
                         switch (typeof(rowInfo[f])) {
                             case "string":
-                                //rowOK = rowOK && (stringCompare.compare(rowInfo[f],filters[f])==0);
-                                if(filters[f].length>0)
+                                if(filters[f].length>0) {
+                                    //rowOK = rowOK && (stringCompare.compare(rowInfo[f],filters[f])==0);
                                     rowOK = rowOK && (rowInfo[f].toLowerCase().indexOf(filters[f])>=0);
+                                }
                                 break;
                             case "number":
-                                rowOK = rowOK && (rowInfo[f] == filters[f]);
+                                if(typeof(filters[f])=="number")
+                                    rowOK = rowOK && (rowInfo[f] == filters[f]);
+                                break;
+                            case "boolean":
+                                if(typeof(filters[f])=="boolean")
+                                    rowOK = rowOK && (rowInfo[f] == filters[f]);
                                 break;
                             default:
                                 break;

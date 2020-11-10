@@ -148,8 +148,10 @@ input {
 	-ms-user-select: none;
 }
 
+.codicon-uncheck:before { content: "" }
 .codicon-check:before { content: "\eab2" }
 .codicon-chrome-minimize:before { content: "\eaba" }
+.codicon-check-3rd-state:before { content: "\eaba" }
 
 .checkbox {
 	height: 18px;
@@ -162,4 +164,3 @@ input {
 	background-color: var(--vscode-checkbox-background);
 	color: var(--vscode-checkbox-foreground);
 }
-
