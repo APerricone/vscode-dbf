@@ -154,6 +154,7 @@ class dbfDocument {
             switch (colInfo.type) {
                 case "C":
                     colInfo.len += colInfo.dec * 256;
+                    off += colInfo.dec * 256;
                     break;
                 case "2": case "4":
                     colInfo.len = colInfo.type == "2" ? 2 : 4;
@@ -187,10 +188,42 @@ class dbfDocument {
                 case "0":
                     colInfo.flags |= 1; // hidden
                     continue;
-                    break;
             }
-            if (colInfo.len != 0)
+            if (colInfo.len != 0) {
+                switch (colInfo.type) {
+                    case "C": case "Q":
+                        colInfo.baseType = "C"
+                        break;
+                    case "L":
+                        colInfo.baseType = "L"
+                        break;
+                    case "D": case "T":
+                    case "@": case "=":
+                        colInfo.baseType = "D"
+                        break;
+                    case "I": case "Y": case "+": case "^":
+                    case "B": case "Z":
+                    case "N": case "F":
+                        colInfo.baseType = "N"
+                        break;
+                    case "V":
+                        switch (col.len) {
+                            case 3:
+                                colInfo.baseType = "D"
+                                break;
+                            case 4:
+                                colInfo.baseType = "N"
+                                break;
+                            default:
+                                colInfo.baseType = "U"
+                                break;
+                        }
+                    default:
+                        colInfo.baseType = "U"
+                        break;
+                }
                 this.colInfos.push(colInfo);
+            }
         }
         this.ready = true;
         this.onReady(this);
@@ -199,7 +232,6 @@ class dbfDocument {
     /**
      * Callback for readed row
      * @callback readBuffCallback
-     * (Number,Buffer,off)
      * @param {Number} idx index of readed row
      * @param {Buff} data readed buffer
      * @param {Number} off start offset in data of row

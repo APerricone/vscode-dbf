@@ -134,3 +134,32 @@ input {
 .selected {
     background-color: var(--vscode-editor-hoverHighlightBackground);
 }
+
+.codicon[class*='codicon-'] {
+	font: normal normal normal 16px/1 codicon;
+	display: inline-block;
+	text-decoration: none;
+	text-rendering: auto;
+	text-align: center;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	user-select: none;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+}
+
+.codicon-check:before { content: "\eab2" }
+.codicon-chrome-minimize:before { content: "\eaba" }
+
+.checkbox {
+	height: 18px;
+    width: 18px;
+    border: 1px solid var(--vscode-checkbox-border);
+    border-radius: 3px;
+    /*margin-right: 9px;
+    margin-left: 0;*/
+    padding: 0;
+	background-color: var(--vscode-checkbox-background);
+	color: var(--vscode-checkbox-foreground);
+}
+

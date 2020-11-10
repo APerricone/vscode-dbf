@@ -40,10 +40,10 @@ function info() {
     txt+= "<h2>Columns</h2>";
     for (let i = 0; i < dbfCols.length; i++) {
         const colInfo = dbfCols[i];
-        if(colInfo.type=="N")
+        if(colInfo.baseType=="N")
             txt+=`<p><b class="nCol">${colInfo.name}</b>(${colInfo.type}:${colInfo.len}.${colInfo.dec})</p>`
         else
-            txt+=`<p><b class="${colInfo.type.toLowerCase()}Col">${colInfo.name}</b>(${colInfo.type}:${colInfo.len})</p>`
+            txt+=`<p><b class="${colInfo.baseType.toLowerCase()}Col">${colInfo.name}</b>(${colInfo.type}:${colInfo.len})</p>`
     }
     dest.innerHTML = txt;
     // set up columns
@@ -84,7 +84,11 @@ function header(data) {
                 case "T": w= 8; break;
                 case "@": w=22; break;
             }
-            cell.style.width = cell.style.maxWidth = cell.style.minWidth = w+"ch";
+            if(data[id].type=="L")
+                cell.style.width = cell.style.maxWidth = cell.style.minWidth = "18px";
+            else
+                cell.style.width = cell.style.maxWidth = cell.style.minWidth = w+"ch";
+
             if(i==0) {
                 cell.onclick=changeOrder;
                 cell.title = data[id].name;
@@ -166,7 +170,13 @@ function row(idx,recNo,data,deleted) {
             dest.children[id+2].classList.add("selected");
         } else
             dest.children[id+2].classList.remove("selected");
-        dest.children[id+2].textContent = data[id];
+        if(dbfCols[id].type=="L") {
+            var html = '<div class="codicon checkbox'
+            if(data[id]) html+=" codicon-check"
+            html+='"></div>'
+            dest.children[id+2].innerHTML=html
+        } else
+            dest.children[id+2].textContent = data[id];
     }
 }
 

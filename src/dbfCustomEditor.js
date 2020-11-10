@@ -131,8 +131,8 @@ class dbfCustomEditor {
                 const col = this.document.colInfos[i];
                 switch (col.type) {
                     case "C":
-                    case "Q":   rowInfo.push(val);                      break;
-                    case "L":   rowInfo.push(val? "1" : "0");           break;
+                    case "Q":   rowInfo.push(val);          break;
+                    case "L":   rowInfo.push(val);          break;
                     case "D":
                         if(isNaN(val))
                             rowInfo.push("  /  /");
