@@ -45,6 +45,7 @@ function info() {
         else
             txt+=`<p><b class="${colInfo.baseType.toLowerCase()}Col">${colInfo.name}</b>(${colInfo.type}:${colInfo.len})</p>`
     }
+    txt+='<input type="datetime-local">'
     dest.innerHTML = txt;
     // set up columns
     header(dbfCols);
@@ -433,7 +434,7 @@ function askFilterUpdate() {
         let cell = header.children[1].children[i];
         /** @type {HTMLInputElement|HTMLDivElement} */
         let inp = cell.children[0];
-        if(inp.className=="HTMLInputElement") {
+        if(inp.constructor.name=="HTMLInputElement") {
             if(inp.value!="") {
                 orderCmd.filters[i-1] = inp.value;
             }
