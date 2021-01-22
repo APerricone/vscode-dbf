@@ -65,6 +65,7 @@ function header(colInfo) {
     var dest = document.createElement("tr");
     head.appendChild(dest);
     var filters = document.createElement("tr");
+    filters.style.display = "none";
     head.appendChild(filters);
 
     var cell = document.createElement("th");
@@ -376,7 +377,7 @@ function resize(nRow) {
 
     var tableCnt = document.getElementById("table-cnt");
     var h1 = document.body.clientHeight
-    var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;;
+    var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;
     var nRows = Math.floor(h1/h2)-1;
     var firstPos = Math.floor(tableCnt.scrollTop / h2);
     console.debug("ask rows "+firstPos+"-"+(firstPos+nRows))
