@@ -1,6 +1,8 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const { type } = require('os');
+const iconv = require('iconv-lite');
+const SUPPORTED_ENCODINGS = require('./encoding').SUPPORTED_ENCODINGS;
 
 /*
  * dbf columns types:
@@ -90,6 +92,25 @@ class dbfDocument {
         this.onSort = () => {}
         // Init
         this.readHeader();
+        /**
+         * @type {vscode.StatusBarItem?}
+         */
+        this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right)
+        this.iconvEncode = vscode.workspace.getConfiguration("dbf-table").get("encoding");
+        if(this.iconvEncode.length==0)
+            this.iconvEncode = vscode.workspace.getConfiguration("files").get("encoding");
+        if(["utf8bom","utf16le","utf16be"].indexOf(this.iconvEncode)>=0 )
+            this.iconvEncode = "utf8"
+        this.statusBarItem.text = this.iconvEncode;
+        if( this.statusBarItem.text in SUPPORTED_ENCODINGS) {
+            this.statusBarItem.text = SUPPORTED_ENCODINGS[this.statusBarItem.text].labelShort;
+        }
+        this.statusBarItem.show()
+    }
+    dispose() {
+        if(this.statusBarItem) {
+            this.statusBarItem.dispose()
+        }
     }
 
     readHeader() {
@@ -125,6 +146,7 @@ class dbfDocument {
         // 16 // spazio di 12
         this.info.hasTags = data.readInt8(28); //
         this.info.codePage = data.readInt8(29);
+        // theoretically "codePage" should mean something...
         // 30 // spazio di 2
         this.readingRow=[];
         this.readingRow.length=this.info.nRecord+1;
@@ -322,8 +344,14 @@ class dbfDocument {
         var str;
         if (col.flags & 0x40)
             str = data.toString("utf16le", off, off + col.len/2);
-        else
-            str = data.toString("ascii", off, off + col.len).replace(/\0+/, "");
+        else {
+            if(col.type=="C" || col.type=="Q")
+                str = iconv.decode(data.subarray(off, off + col.len),this.iconvEncode);
+            else
+                str = data.toString("ascii", off, off + col.len);
+            str = str.replace(/\0+/, "");
+        }
+
         switch (col.type) {
             case "C":
                 return str;

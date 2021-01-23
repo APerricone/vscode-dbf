@@ -2,6 +2,12 @@
 
 All notable changes to the "vscode-dbf" extension will be documented in this file.
 
+## [0.0.7]
+ - added encoding setting and use
+
+## [0.0.6]
+ - improved stability
+
 ## [0.0.5]
  - performance boost
 

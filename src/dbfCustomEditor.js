@@ -37,6 +37,10 @@ class dbfCustomEditor {
      * @param {vscode.WebviewPanelOnDidChangeViewStateEvent} ev
      */
     changedViewState(/*ev*/) {
+        if(this.webviewPanel.visible)
+            this.document.statusBarItem.show()
+        else
+            this.document.statusBarItem.hide()
         if(this.webviewPanel.visible && dbfCurrentEditor != this) {
             dbfCurrentEditor = this;
             if(this.document.ready) {

@@ -45,7 +45,6 @@ function info() {
         else
             txt+=`<p><b class="${colInfo.baseType.toLowerCase()}Col">${colInfo.name}</b>(${colInfo.type}:${colInfo.len})</p>`
     }
-    txt+='<input type="datetime-local">'
     dest.innerHTML = txt;
     // set up columns
     header(dbfCols);
