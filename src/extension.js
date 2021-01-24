@@ -13,6 +13,7 @@ const SUPPORTED_ENCODINGS = require('./encoding').SUPPORTED_ENCODINGS;
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+	vscode.commands.executeCommand('setContext', "vscode-dbf.hasDoc", false);
 	context.subscriptions.push(vscode.commands.registerCommand('vscode-dbf.goto', goto));
 	context.subscriptions.push(vscode.commands.registerCommand('vscode-dbf.change-encoding', changeEncoding));
 

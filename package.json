@@ -15,7 +15,8 @@
 	],
 	"activationEvents": [
 		"onCustomEditor:dbf-table",
-		"onCommand:vscode-dbf.goto"
+		"onCommand:vscode-dbf.goto",
+		"onCommand:vscode-dbf.change-encoding"
 	],
 	"main": "./src/extension.js",
 	"contributes": {
@@ -23,12 +24,12 @@
 			{
 				"command": "vscode-dbf.goto",
 				"title": "DBF - Go to recno..",
-				"enablement": "viewType == dbf-table"
+				"enablement": "vscode-dbf.hasDoc"
 			},
 			{
 				"command": "vscode-dbf.change-encoding",
 				"title": "DBF - reopen with encoding..",
-				"enablement": "viewType == dbf-table"
+				"enablement": "vscode-dbf.hasDoc"
 			}
 		],
 		"customEditors": [

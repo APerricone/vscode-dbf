@@ -25,6 +25,7 @@ class dbfCustomEditor {
             this.changedViewState(ev);
         });
         dbfCurrentEditor = this;
+        vscode.commands.executeCommand('setContext', "vscode-dbf.hasDoc", true);
     }
 
     /**
@@ -39,10 +40,13 @@ class dbfCustomEditor {
      * @param {vscode.WebviewPanelOnDidChangeViewStateEvent} ev
      */
     changedViewState(/*ev*/) {
-        if(this.webviewPanel.visible)
+        if(this.webviewPanel.visible) {
             this.document.statusBarItem.show()
-        else
+            vscode.commands.executeCommand('setContext', "vscode-dbf.hasDoc", true);
+        } else {
             this.document.statusBarItem.hide()
+            vscode.commands.executeCommand('setContext', "vscode-dbf.hasDoc", false);
+        }
         if(this.webviewPanel.visible && dbfCurrentEditor != this) {
             dbfCurrentEditor = this;
             if(this.document.ready) {
