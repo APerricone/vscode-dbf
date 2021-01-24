@@ -93,7 +93,7 @@ class dbfDocument {
         // Init
         this.readHeader();
         /**
-         * @type {vscode.StatusBarItem?}
+         * @type {vscode.StatusBarItem}
          */
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right)
         this.iconvEncode = vscode.workspace.getConfiguration("dbf-table").get("encoding");
@@ -105,6 +105,7 @@ class dbfDocument {
         if( this.statusBarItem.text in SUPPORTED_ENCODINGS) {
             this.statusBarItem.text = SUPPORTED_ENCODINGS[this.statusBarItem.text].labelShort;
         }
+        this.statusBarItem.command = "vscode-dbf.change-encoding";
         this.statusBarItem.show()
     }
     dispose() {
@@ -266,7 +267,6 @@ class dbfDocument {
      * @param {readBuffCallback} cb Callback
      */
     readBuff(start,end,cb) {
-        start = start < 1 ? 1 : start;
         var readStart = this.info.headerLen + this.info.recordLen * (start - 1);
         var readEnd = this.info.headerLen + this.info.recordLen * end;
         var buffSize = this.info.recordLen*Math.ceil((64*1024)/this.info.recordLen);
@@ -312,6 +312,7 @@ class dbfDocument {
             rowInfo.ordNo = ordNo;
             this.onRow(rowInfo);
         };
+        this.readingRow[0]=false;
         var readStart = this.readingRow.indexOf(true);
         if(readStart<0) return;
         var readEnd = this.readingRow.lastIndexOf(true);

@@ -23,7 +23,12 @@
 			{
 				"command": "vscode-dbf.goto",
 				"title": "DBF - Go to recno..",
-				"enablement": "editorLangId == dbf-table"
+				"enablement": "viewType == dbf-table"
+			},
+			{
+				"command": "vscode-dbf.change-encoding",
+				"title": "DBF - reopen with encoding..",
+				"enablement": "viewType == dbf-table"
 			}
 		],
 		"customEditors": [

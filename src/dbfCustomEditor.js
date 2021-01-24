@@ -3,6 +3,8 @@ const { dbfDocument } = require("./dbfDocument");
 const path = require('path');
 const fs = require('fs');
 const { type } = require('os');
+const SUPPORTED_ENCODINGS = require('./encoding').SUPPORTED_ENCODINGS;
+
 
 var dbfCurrentEditor;
 /**
@@ -178,6 +180,15 @@ class dbfCustomEditor {
             val = this.document.sortedIdx.indexOf(val)+1;
         }
         this.webviewPanel.webview.postMessage({ command: 'goto', data: val });
+    }
+    setEncoding(val) {
+        const doc = this.document;
+        doc.iconvEncode = val;
+        doc.statusBarItem.text = val;
+        if( doc.statusBarItem.text in SUPPORTED_ENCODINGS) {
+            doc.statusBarItem.text = SUPPORTED_ENCODINGS[doc.statusBarItem.text].labelShort;
+        }
+        this.webviewPanel.webview.postMessage({ command: 'reload' });
     }
 };
 

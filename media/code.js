@@ -19,6 +19,10 @@ window.addEventListener("message", ev => {
             break;
         case "totalRow":
             resize(ev.data.nFilteredRow)
+            break;
+        case "reload":
+            reaskAll()
+            break;
         }
 });
 
@@ -373,7 +377,9 @@ function resize(nRow) {
                 dest.style.display="none"
         }
     }
-
+    reaskAll()
+}
+function reaskAll() {
     var tableCnt = document.getElementById("table-cnt");
     var h1 = document.body.clientHeight
     var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;
