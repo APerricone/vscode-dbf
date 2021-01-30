@@ -21,12 +21,6 @@ body {
     overflow-y: scroll;
     position: relative;
 }
-#empty-scroll {
-    width: 1%;
-    display: inline-block;
-    position: absolute;
-    top: 0;
-}
 
 #info-cnt {
     width: 18%;
@@ -40,6 +34,13 @@ body {
 #info-cnt p {
     margin-top: 0.5em;
     margin-bottom: 0.5em;
+}
+
+#empty-scroll {
+    width: 1%;
+    display: inline-block;
+    position: absolute;
+    top: 0;
 }
 
 #table-cnt table {
@@ -152,6 +153,19 @@ input {
 .codicon-check:before { content: "\eab2" }
 .codicon-chrome-minimize:before { content: "\eaba" }
 .codicon-check-3rd-state:before { content: "\eaba" }
+.codicon-symbol-key:before { content: "\ea93" } /*abc*/
+.codicon-equal:before { content: "=" }
+.codicon-not-equal:before { content: "≠" }
+.codicon-greater:before { content: ">" }
+.codicon-less:before { content: "<" }
+.codicon-greater-than-equal:before { content: "≥" }
+.codicon-less-than-equal:before { content: "≤" }
+
+
+.icon-space {
+    margin-left: 0.5ex;
+    margin-right: 0.5ex;
+}
 
 .checkbox {
 	height: 18px;
@@ -163,4 +177,42 @@ input {
     padding: 0;
 	background-color: var(--vscode-checkbox-background);
 	color: var(--vscode-checkbox-foreground);
+}
+
+.input-overlay:before {
+    position: absolute;
+    top: 0;
+    left: 0.5ex;
+}
+
+.dropdown {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: fit-content;;
+    height: auto;
+    background-color: var(--vscode-editorSuggestWidget-background);
+    color: var(--vscode-editorSuggestWidget-foreground);
+    border-color: var(--vscode-editorSuggestWidget-border);
+    border-style: solid;
+    border-width: 1px;
+}
+
+.dropdown p {
+    display: block;
+    margin: 0;
+    padding: 0.2em;
+}
+
+.dropdown p:hover {
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.dropdown p.selected {
+    background-color: var(--vscode-list-activeSelectionBackground);
+    color: var(--vscode-list-activeSelectionForeground);
+}
+
+.dropdown p .match {
+    color: var(--vscode-list-highlightForeground)
 }

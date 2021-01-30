@@ -6,7 +6,7 @@
 		"url": "https://github.com/APerricone/vscode-dbf"
 	},
 	"description": "DBF table viewer for VSCode",
-	"version": "0.0.7",
+	"version": "0.1.0",
 	"engines": {
 		"vscode": "^1.49.0"
 	},
@@ -73,6 +73,12 @@
 						"Traditional Chinese (Big5-HKSCS)", "Japanese (Shift JIS)", "Japanese (EUC-JP)", "Korean (EUC-KR)",
 						"Thai (Windows 874)", "Latin/Thai (ISO 8859-11)", "Cyrillic (KOI8-RU)", "Tajik (KOI8-T)",
 						"Simplified Chinese (GB 2312)", "Nordic DOS (CP 865)", "Western European DOS (CP 850)" ]
+				},
+				"dbf-table.max-dropdown-values": {
+					"type": "number",
+					"description": "Maximum number of values on dropdown for character columns",
+					"default": 20,
+					"exclusiveMinimum": 0
 				}
 			}
 		}

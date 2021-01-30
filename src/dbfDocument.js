@@ -517,7 +517,7 @@ class dbfDocument {
         var stringCompare = new Intl.Collator(vscode.env.language,{usage: "search", sensitivity:"base"})
         for(let f in filters) {
             var idx = parseInt(f);
-            if(idx>=0 && idx<this.colInfos.length) {
+            if(idx>=0 && idx<this.colInfos.length && f[0]>="0" && f[0]<="9") {
                 switch (this.colInfos[idx].baseType) {
                     case "C":
                         if(filters[f].length>0) {
@@ -529,6 +529,32 @@ class dbfDocument {
                         if(filters[f].length>0) {
                             hasFilter=true;
                             filters[idx]=parseFloat(filters[idx].replace(/,/g,"."))
+                            var operator = "equal"
+                            if(("operator-"+f) in filters) {
+                                operator = filters["operator-"+f]
+                            }
+                            switch(operator) {
+                                case "not-equal":
+                                    filters["operator-"+f] = (a,b) => a!=b;
+                                    break;
+                                case "greater":
+                                    filters["operator-"+f] = (a,b) => a>b;
+                                    break;
+                                case "less":
+                                    filters["operator-"+f] = (a,b) => a<b;
+                                    break;
+                                case "greater-than-equal":
+                                    filters["operator-"+f] = (a,b) => a>=b;
+                                    break;
+                                case "less-than-equal":
+                                    filters["operator-"+f] = (a,b) => a<=b;
+                                    break;
+                                case "equal":
+                                default:
+                                    filters["operator-"+f] = (a,b) => a==b;
+                                    break;
+                            }
+
                         }
                         break;
                     case "L":
@@ -562,8 +588,9 @@ class dbfDocument {
             if(hasFilter) {
                 var rowInfo = this.readRowFromBuffer(data, off);
                 for(let f in filters) {
-                    if(f>=0 && f<rowInfo.length) {
-                        switch (typeof(rowInfo[f])) {
+                    var fIdx = parseInt(f);
+                    if(fIdx>=0 && fIdx<this.colInfos.length) {
+                        switch (typeof(rowInfo[fIdx])) {
                             case "string":
                                 if(filters[f].length>0) {
                                     //rowOK = rowOK && (stringCompare.compare(rowInfo[f],filters[f])==0);
@@ -571,8 +598,9 @@ class dbfDocument {
                                 }
                                 break;
                             case "number":
-                                if(typeof(filters[f])=="number")
-                                    rowOK = rowOK && (rowInfo[f] == filters[f]);
+                                if(typeof(filters[f])=="number") {
+                                    rowOK = rowOK && filters["operator-"+f](rowInfo[f], filters[f])
+                                }
                                 break;
                             case "boolean":
                                 if(typeof(filters[f])=="boolean")

@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 
 function info() {
+    dbfInfo.nFilteredRow = dbfInfo.nRecord;
     // set up information on right
     var dest = document.getElementById("info-cnt");
     var txt = "<h1>DBF Informations</h1>";
@@ -68,7 +69,7 @@ function header(colInfo) {
     var dest = document.createElement("tr");
     head.appendChild(dest);
     var filters = document.createElement("tr");
-    filters.style.display = "none";
+    //filters.style.display = "none";
     head.appendChild(filters);
 
     var cell = document.createElement("th");
@@ -108,12 +109,24 @@ function header(colInfo) {
              } else {
                 cell.style.padding="0";
                 var inp = document.createElement("input")
-                inp.addEventListener("keyup",addFilter)
+                inp.addEventListener("keyup", addFilter)
                 cell.appendChild(inp);
+                if(colInfo[id].type=="N") {
+                    inp.addEventListener("focusin", showNumDrop)
+                    //inp.addEventListener("focusout", hideNumDrop)
+                    inp.style.textAlign = "right"
+                    cell.style.position = "relative";
+                    var icon = document.createElement("span")
+                    icon.classList.add("input-overlay")
+                    icon.classList.add("codicon")
+                    icon.classList.add("codicon-equal")
+                    cell.insertBefore(icon, inp);
+                }
             }
             row[i].appendChild(cell);
         }
     }
+    document.body.addEventListener("click",hideNumDrop, {"passive": true})
 }
 
 function setupRows() {
@@ -121,7 +134,7 @@ function setupRows() {
     body.innerHTML="";
     var h1 = screen.height //document.getElementsByTagName("body")[0].clientHeight
     var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;
-    totalRows = Math.floor(h1/h2)-1;
+    totalRows = Math.floor(h1/h2)-2;
     document.getElementById("empty-scroll").style.height = (h2*(dbfInfo.nRecord+2)).toFixed(0)+"px";
     for(let i=0;i<totalRows;i++) {
         var dest = document.createElement("tr");
@@ -220,19 +233,20 @@ function onScroll() {
     //    return;
     var h1 = document.body.clientHeight
     var h2 = document.getElementById("row1").clientHeight;
-    var nRows = Math.floor(h1/h2)-1;
+    var nRows = Math.floor(h1/h2)-2;
 
-    var maxTop = ((dbfInfo.nRecord+3)*h2)-h1;
+    var maxTop = ((dbfInfo.nFilteredRow+3)*h2)-h1;
     tableCnt.children[0].style.top=Math.max(0,Math.min(maxTop,tableCnt.scrollTop))+"px";
 
     // hide and show rows based on current height
+    //var firstPos = Math.min(Math.floor(tableCnt.scrollTop / h2), dbfInfo.nFilteredRow-totalRows-1)
     var firstPos = Math.floor(tableCnt.scrollTop / h2);
     var minEmpty = dbfInfo.nRecord, maxEmpty = 0;
     for(let i=0;i<totalRows;i++) {
         var dest = document.getElementById("row"+(i+1));
         if(dest) {
             var n = (i+1+firstPos);
-            if(n>dbfInfo.nRecord || i>=nRows) {
+            if(n>dbfInfo.nFilteredRow || i>=nRows) {
                 dest.style.display = "none";
                 dest.classList.add("empty");
                 dest.classList.remove("filled");
@@ -366,8 +380,9 @@ function changeOrder(evt) {
 
 function resize(nRow) {
     console.debug("resize "+nRow)
+    dbfInfo.nFilteredRow = nRow;
     var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;
-    document.getElementById("empty-scroll").style.height = (h2*(nRow+2)).toFixed(0)+"px";
+    document.getElementById("empty-scroll").style.height = (h2*(nRow+1)).toFixed(0)+"px";
     for(let i=0;i<totalRows;i++) {
         var dest = document.getElementById("row"+(i+1));
         if(dest) {
@@ -440,6 +455,11 @@ function askFilterUpdate() {
         let cell = header.children[1].children[i];
         /** @type {HTMLInputElement|HTMLDivElement} */
         let inp = cell.children[0];
+        if(cell.children.length>1) {
+            var currIcon = Array.prototype.find.call(inp.classList, (v)=> v.startsWith("codicon-"));
+            orderCmd.filters["operator-"+(i-1)]=currIcon.substring(8)
+            inp = cell.children[1];
+        }
         if(inp.constructor.name=="HTMLInputElement") {
             if(inp.value!="") {
                 orderCmd.filters[i-1] = inp.value;
@@ -455,4 +475,45 @@ function askFilterUpdate() {
     }
     console.debug("ask order "+sortIdx+" + filters "+orderCmd.filters.length)
     vscode.postMessage(orderCmd);
+}
+
+var currentFilterDropDown = undefined;
+var showNextNumeric = false
+function showNumDrop(ev) {
+    currentFilterDropDown = ev.target;
+    var destRect = ev.target.parentElement.getBoundingClientRect()
+    var cnt = document.getElementById("table-cnt")
+    var parentRect = cnt.getBoundingClientRect()
+    var dropDown = document.getElementById("dropdown_numeric")
+    dropDown.style.display="block";
+    dropDown.style.top = (destRect.bottom-parentRect.top+cnt.scrollTop)+"px"
+    dropDown.style.left = (destRect.left-parentRect.left+cnt.scrollLeft)+"px"
+    /** @type {HTMLElement} */
+    var iconElement = ev.target.parentNode.children[0];
+    var currIcon = Array.prototype.find.call(iconElement.classList, (v)=> v.startsWith("codicon-"));
+    Array.prototype.forEach.call(dropDown.children,(v)=>v.classList.remove("selected"))
+    Array.prototype.forEach.call(dropDown.children,(v)=>v.onclick=numericSelected)
+    var ele = Array.prototype.find.call(dropDown.children, (v)=> v.children[0].classList.contains(currIcon));
+    if(ele) ele.classList.add("selected")
+    showNextNumeric = true;
+}
+
+function numericSelected(ev) {
+    var iconElement = ev.target.children[0];
+    var destIcon = currentFilterDropDown.parentNode.children[0];
+    var currIcon = Array.prototype.find.call(destIcon.classList, (v)=> v.startsWith("codicon-"));
+    destIcon.classList.remove(currIcon)
+    var selectedIcon = Array.prototype.find.call(iconElement.classList, (v)=> v.startsWith("codicon-"));
+    destIcon.classList.add(selectedIcon)
+    askFilterUpdate();
+}
+
+function hideNumDrop(ev) {
+    if(showNextNumeric) {
+        showNextNumeric = false;
+        return
+    }
+    var dropDown = document.getElementById("dropdown_numeric")
+    dropDown.style.display="none";
+    currentFilterDropDown = undefined;
 }
