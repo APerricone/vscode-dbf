@@ -127,6 +127,8 @@ function header(colInfo) {
         }
     }
     document.body.addEventListener("click",hideNumDrop, {"passive": true})
+    // initialize lastFilter
+    askFilterUpdate()
 }
 
 function setupRows() {
@@ -430,6 +432,7 @@ function addFilter(ev) {
     filterTimer = setTimeout(askFilterUpdate,100);
 }
 
+var lastFilter;
 function askFilterUpdate() {
     var header = document.getElementsByTagName("thead")[0];
     var sortIdx  = Array.prototype.findIndex.call(
@@ -438,19 +441,14 @@ function askFilterUpdate() {
                        v.classList.contains("sort-desc")
             } );
     var sortDesc = false;
-    if(sortIdx>=0) {
+    if(sortIdx>0) {
         sortDesc = header.children[0].children[sortIdx].classList.contains("sort-desc");
-    }
+    } else
+        sortIdx=0;
 
-    for(let i=0;i<totalRows;i++) {
-        var dest = document.getElementById("row"+(i+1));
-        if(dest) {
-            dest.classList.add("empty");
-            dest.classList.remove("filled");
-        }
-    }
     var orderCmd = {"command": "order", "colId": sortIdx-1, "desc": sortDesc};
     orderCmd.filters = {};
+    var ckFilter = [];
     for(let i=1;i<header.children[1].children.length;++i) {
         let cell = header.children[1].children[i];
         /** @type {HTMLInputElement|HTMLDivElement} */
@@ -463,20 +461,56 @@ function askFilterUpdate() {
         if(inp.constructor.name=="HTMLInputElement") {
             if(inp.value!="") {
                 orderCmd.filters[i-1] = inp.value;
+                ckFilter[i-1] = inp.value;
             }
         } else {
             if(inp.classList.contains("codicon-uncheck")) {
                 orderCmd.filters[i-1] = false;
+                ckFilter[i-1] = false;
             }
             if(inp.classList.contains("codicon-check")) {
                 orderCmd.filters[i-1] = true;
+                ckFilter[i-1] = true;
             }
         }
     }
-    console.debug("ask order "+sortIdx+" + filters "+orderCmd.filters.length)
-    vscode.postMessage(orderCmd);
+
+
+    var ask = false;
+    if(lastFilter!=undefined) {
+        console.debug("ask order "+sortIdx+" + filters "+ckFilter.length)
+        ask=lastFilter.colId != orderCmd.colId;
+        for(let i in lastFilter.filters) {
+            if(!(i in orderCmd.filters)) {
+                ask=true;
+                break;
+            } else {
+                if(i.toString().startsWith("operator-") && !(i.substring(9) in orderCmd.filters))
+                    continue;
+                ask = ask || lastFilter.filters[i] != orderCmd.filters[i];
+            }
+        }
+        for(let i in orderCmd.filters) {
+            if(!(i in lastFilter.filters)) {
+                ask=true;
+                break;
+            }
+        }
+    }
+    lastFilter = orderCmd;
+    if(ask) {
+        for(let i=0;i<totalRows;i++) {
+            var dest = document.getElementById("row"+(i+1));
+            if(dest) {
+                dest.classList.add("empty");
+                dest.classList.remove("filled");
+            }
+        }
+        vscode.postMessage(orderCmd);
+    }
 }
 
+/** @type {HTMLInputElement} */
 var currentFilterDropDown = undefined;
 var showNextNumeric = false
 function showNumDrop(ev) {
@@ -506,6 +540,7 @@ function numericSelected(ev) {
     var selectedIcon = Array.prototype.find.call(iconElement.classList, (v)=> v.startsWith("codicon-"));
     destIcon.classList.add(selectedIcon)
     askFilterUpdate();
+    currentFilterDropDown.focus();
 }
 
 function hideNumDrop(ev) {
