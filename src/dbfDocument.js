@@ -638,6 +638,59 @@ class dbfDocument {
             this.checkReadingBuff()
         });
     }
+
+    getListElement(colId, baseVal, cb) {
+        if(this.currListStream!=undefined)
+            this.currListStream.destroy();
+        var maxItems=  vscode.workspace.getConfiguration("dbf-table").get("max-dropdown-values");
+        if(this.currListCol==colId) {
+            var param = [];
+            if(baseVal.length==0) {
+                if(this.currListItems.length<=maxItems)
+                    cb(this.currListItems);
+                else
+                    cb();
+                return;
+            }
+            baseVal = baseVal.toLowerCase();
+            for (let i = 0; i < this.currListItems.length; i++) {
+                const value = this.currListItems[i];
+                if(value.toLowerCase().indexOf(baseVal)>=0)
+                    param.push(value)
+            }
+            if(param.length<=maxItems)
+                cb(param);
+            else
+                cb();
+            return;
+        }
+        var items = {};
+        var allItems = {};
+        if(typeof(colId)!="number") {
+            cb();
+            return;
+        }
+        var sortColInfo = this.colInfos[colId];
+        baseVal = baseVal.toLowerCase();
+        this.currListStream = this.readBuff(1,this.info.nRecord,(idx,data,off)=>{
+            var value = this.readValueFromBuffer(data, off+sortColInfo.offset, sortColInfo, true).trim();
+            allItems[value]=true;
+            if(baseVal.length==0 || value.toLowerCase().indexOf(baseVal)>=0)
+                items[value]=true;
+        });
+        this.currListStream.on("close",()=>{
+            this.currListStream = undefined;
+            this.currListCol = colId;
+            this.currListItems = Object.keys(allItems);
+            this.currListItems.sort();
+            var param = Object.keys(items);
+            if(param.length>maxItems)
+                param=undefined;
+            else
+                param.sort();
+            cb(param);
+        });
+    }
 }
 exports.dbfDocument = dbfDocument;
 

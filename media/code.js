@@ -23,6 +23,9 @@ window.addEventListener("message", ev => {
         case "reload":
             reaskAll()
             break;
+        case "list":
+            showList(ev.data)
+            break;
         }
 });
 
@@ -50,6 +53,9 @@ function info() {
         else
             txt+=`<p><b class="${colInfo.baseType.toLowerCase()}Col">${colInfo.name}</b>(${colInfo.type}:${colInfo.len})</p>`
     }
+    txt+='<input type="datetime-local"><br>'
+    txt+='<input type="date"><br>'
+    txt+='<input type="time-local"><br>'
     dest.innerHTML = txt;
     // set up columns
     header(dbfCols);
@@ -121,6 +127,9 @@ function header(colInfo) {
                     icon.classList.add("codicon")
                     icon.classList.add("codicon-equal")
                     cell.insertBefore(icon, inp);
+                } else {
+                    inp.addEventListener("focusin", showDropDown)
+                    inp.addEventListener("keyup", showDropDown)
                 }
             }
             row[i].appendChild(cell);
@@ -172,12 +181,12 @@ function setupRows() {
     h1=document.getElementsByTagName("body")[0].clientHeight
 
     var n = Math.floor(h1/h2)-1;
-    console.debug("ask rows 1-"+n)
+    //console.debug("ask rows 1-"+n)
     vscode.postMessage({"command": "rows", "min":1, "max": n});
 }
 
 function row(idx,recNo,data,deleted) {
-    console.debug("<row-" + idx + "-" + recNo)
+    //console.debug("<row-" + idx + "-" + recNo)
     var h2 = document.getElementById("row1").clientHeight
     var tableCnt = document.getElementById("table-cnt");
     var firstPos = Math.floor(tableCnt.scrollTop / h2);
@@ -262,7 +271,7 @@ function onScroll() {
         }
     }
     if(minEmpty<=maxEmpty) {
-        console.debug("ask rows "+minEmpty+"-"+maxEmpty)
+        //console.debug("ask rows "+minEmpty+"-"+maxEmpty)
         vscode.postMessage({"command": "rows", "min":minEmpty, "max": maxEmpty});
     }
     // move the current rows
@@ -290,7 +299,7 @@ function onScroll() {
         if(minEmpty<=maxEmpty) {
             minEmpty+=1+firstPos;
             maxEmpty+=1+firstPos;
-            console.debug("ask rows "+minEmpty+"-"+maxEmpty)
+            //console.debug("ask rows "+minEmpty+"-"+maxEmpty)
             vscode.postMessage({"command": "rows", "min":minEmpty, "max": maxEmpty});
         }
 
@@ -381,7 +390,7 @@ function changeOrder(evt) {
 }
 
 function resize(nRow) {
-    console.debug("resize "+nRow)
+    //console.debug("resize "+nRow)
     dbfInfo.nFilteredRow = nRow;
     var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;
     document.getElementById("empty-scroll").style.height = (h2*(nRow+1)).toFixed(0)+"px";
@@ -402,7 +411,7 @@ function reaskAll() {
     var h2 = document.getElementsByTagName("thead")[0].children[0].clientHeight;
     var nRows = Math.floor(h1/h2)-1;
     var firstPos = Math.floor(tableCnt.scrollTop / h2);
-    console.debug("ask rows "+firstPos+"-"+(firstPos+nRows))
+    //console.debug("ask rows "+firstPos+"-"+(firstPos+nRows))
     vscode.postMessage({"command": "rows", "min":(firstPos), "max": (firstPos+nRows)});
 }
 
@@ -513,15 +522,24 @@ function askFilterUpdate() {
 /** @type {HTMLInputElement} */
 var currentFilterDropDown = undefined;
 var showNextNumeric = false
-function showNumDrop(ev) {
-    currentFilterDropDown = ev.target;
-    var destRect = ev.target.parentElement.getBoundingClientRect()
+var showNextGeneric = false
+
+function putDropDown(dropDown) {
     var cnt = document.getElementById("table-cnt")
     var parentRect = cnt.getBoundingClientRect()
-    var dropDown = document.getElementById("dropdown_numeric")
+    var destRect = currentFilterDropDown.parentElement.getBoundingClientRect()
     dropDown.style.display="block";
     dropDown.style.top = (destRect.bottom-parentRect.top+cnt.scrollTop)+"px"
     dropDown.style.left = (destRect.left-parentRect.left+cnt.scrollLeft)+"px"
+
+}
+
+function showNumDrop(ev) {
+    hideNumDrop();
+    showNextNumeric = true;
+    currentFilterDropDown = ev.target;
+    var dropDown = document.getElementById("dropdown_numeric")
+    putDropDown(dropDown);
     /** @type {HTMLElement} */
     var iconElement = ev.target.parentNode.children[0];
     var currIcon = Array.prototype.find.call(iconElement.classList, (v)=> v.startsWith("codicon-"));
@@ -529,7 +547,6 @@ function showNumDrop(ev) {
     Array.prototype.forEach.call(dropDown.children,(v)=>v.onclick=numericSelected)
     var ele = Array.prototype.find.call(dropDown.children, (v)=> v.children[0].classList.contains(currIcon));
     if(ele) ele.classList.add("selected")
-    showNextNumeric = true;
 }
 
 function numericSelected(ev) {
@@ -543,12 +560,72 @@ function numericSelected(ev) {
     currentFilterDropDown.focus();
 }
 
-function hideNumDrop(ev) {
+function showDropDown(ev) {
+    hideNumDrop();
+    showNextGeneric = true;
+    currentFilterDropDown = ev.target;
+    var dropDown = document.getElementById("dropdown_generic")
+    putDropDown(dropDown);
+    //dropDown.innerHTML='<div class="loading" >'
+    dropDown.innerHTML='';
+    var element = ev.target.parentNode;
+    var index = Array.prototype.indexOf.call(element.parentNode.children, element);
+    console.debug("ask list "+(index-1))
+    var askList = {"command":"getList", "colId": index-1, "filter": currentFilterDropDown.value}
+    vscode.postMessage(askList);
+}
+
+function showList(data) {
+    var dropDown = document.getElementById("dropdown_generic")
+    if(data.items==undefined || currentFilterDropDown==undefined) {
+        console.debug("get list empty")
+        dropDown.style.display="none";
+        return;
+    }
+    console.debug("get list "+(data.items.length))
+    dropDown.style.display="block";
+    var base = currentFilterDropDown.value.toLowerCase()
+    for (let i = 0; i < data.items.length; i++) {
+        //<p><span class="icon-space codicon codicon-symbol-key"></span>p<span class="match">rov</span>a 1</p>
+        var value = data.items[i];
+        var idx;
+        if(base.length>0 && (idx=value.toLowerCase().indexOf(base))>=0) {
+            var endM = idx+base.length
+            value = value.substring(0,idx)+"<span class=\"match\">"+value.substring(idx,endM)+"</span>"+value.substring(endM)
+        }
+        var pEle = document.createElement("p")
+        pEle.innerHTML="<span class=\"icon-space codicon codicon-symbol-key\"></span>"+value;
+        pEle.onclick=textSelected;
+        dropDown.appendChild(pEle);
+    }
+}
+
+function textSelected(ev) {
+    currentFilterDropDown.value = ev.target.textContent;
+    console.debug("selected "+ev.target.textContent)
+    var dropDown = document.getElementById("dropdown_generic")
+    dropDown.innerHTML = "";
+    dropDown.appendChild(ev.target);
+    askFilterUpdate();
+    //showDropDown({"target":currentFilterDropDown})
+}
+
+
+function hideNumDrop() {
+    if(!showNextNumeric && !showNextGeneric)
+        currentFilterDropDown = undefined;
     if(showNextNumeric) {
         showNextNumeric = false;
-        return
+    } else {
+        var dropDown = document.getElementById("dropdown_numeric")
+        dropDown.style.display="none";
     }
-    var dropDown = document.getElementById("dropdown_numeric")
-    dropDown.style.display="none";
-    currentFilterDropDown = undefined;
+    if(showNextGeneric) {
+        showNextGeneric = false;
+    } else {
+        var dropDown = document.getElementById("dropdown_generic")
+        if(dropDown.style.display!="none")
+            console.debug("hide dropdown")
+        dropDown.style.display="none";
+    }
 }

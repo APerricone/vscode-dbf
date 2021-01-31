@@ -114,6 +114,13 @@ class dbfCustomEditor {
                             this.document.sortedIdx? this.document.sortedIdx.length : this.document.info.nRecord });
                 }
                 break;
+            case "getList":
+                this.document.getListElement(message.colId,message.filter, (items)=>{
+                    this.webviewPanel.webview.postMessage({
+                        command: 'list', items: items
+                    })
+                });
+                break;
             default:
                 break;
         }

@@ -4,6 +4,8 @@ All notable changes to the "vscode-dbf" extension will be documented in this fil
 
 ## [0.1.0]
  - added filters (!!)
+
+## [0.0.8]
  - added command "reopen with encoding"
 
 ## [0.0.7]
