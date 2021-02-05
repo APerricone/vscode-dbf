@@ -40,7 +40,7 @@ function info() {
     var dest = document.getElementById("info-cnt");
     var txt = "<h1>DBF Informations</h1>";
     txt+=`<p><b>version:</b> ${dbfInfo.version}</p>`
-    var lastMod = new Date(dbfInfo.year+1900,dbfInfo.month,dbfInfo.day);
+    var lastMod = new Date(dbfInfo.year+1900,dbfInfo.month-1,dbfInfo.day);
     var dateOpt = { year: "numeric", month: "2-digit", day: "2-digit"};
     var dFormat = new Intl.DateTimeFormat(navigator.language, dateOpt);
     txt+=`<p><b>last modified date:</b> ${dFormat.format(lastMod)}</p>`
