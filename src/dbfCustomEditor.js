@@ -132,49 +132,11 @@ class dbfCustomEditor {
         }
         //console.log(`send Info ${this.document.ready} - ${this.document.colInfos.length} - ${this.document.info.nRecord} `)
         this.webviewPanel.webview.postMessage({ command: 'info', data: this.document.info, cols: this.document.colInfos });
-        // write header
-        var dateOpt = { year: "numeric", month: "2-digit", day: "2-digit"};
-        var timeOpt = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false};
-        var dFormat = new Intl.DateTimeFormat(vscode.env.language, dateOpt);
-        var tFormat = new Intl.DateTimeFormat(vscode.env.language, timeOpt);
-        var dtFormat = new Intl.DateTimeFormat(vscode.env.language, { ...dateOpt, ...timeOpt});
         // write rows
         this.document.onRow =(row) => {
             var rowInfo = [];
             for (let i = 0; i < row.length; i++) {
-                /** @type {String|Number|Date|Boolean} */
-                const val = row[i];
-                /** @type {dbfcolInfo} */
-                const col = this.document.colInfos[i];
-                switch (col.type) {
-                    case "C":
-                    case "Q":   rowInfo.push(val);          break;
-                    case "L":   rowInfo.push(val);          break;
-                    case "D":
-                        if(isNaN(val))
-                            rowInfo.push("  /  /");
-                        else
-                            rowInfo.push(dFormat.format(val));
-                        break;
-                    case "T":   if(col.len==4) { rowInfo.push(tFormat.format(val));      break;} //fallthrough
-                    case "=":
-                    case "@":   rowInfo.push(dtFormat.format(val));     break;
-                    case "I": case "Y": case "+": case "^":
-                        if(typeof(val)=="bigint")
-                        rowInfo.push(val.toString());
-                        else
-                            rowInfo.push(val.toFixed(col.dec));
-                        break;
-                    case "B": case "Z": case "F": case "N":
-                        rowInfo.push(val.toFixed(col.dec));
-                        break;
-                    case "V":
-                        if(col.len==3)  { rowInfo.push(dFormat.format(val)); break; }
-                        if(col.len==4)  { rowInfo.push(val.toFixed(col.dec)); break; }
-                        //fallthrough
-                    default:    rowInfo.push(val + "?");                break;
-                }
-
+                rowInfo.push(this.document.valToString(row[i],i));
             }
             var cmd = { command: 'row' };
             cmd.data = rowInfo;

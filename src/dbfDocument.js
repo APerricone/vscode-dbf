@@ -50,6 +50,7 @@ const SUPPORTED_ENCODINGS = require('./encoding').SUPPORTED_ENCODINGS;
  * @property {Number} hasTags bit filed: 1-production index, 2-memo file in VFP
  * @property {Number} codePage
  */
+
 /**
  *
  * @typedef {Object} dbfColInfo
@@ -90,6 +91,12 @@ class dbfDocument {
         this.sortedIdx = undefined; //
         this.sorting = undefined;
         this.onSort = () => {}
+        var dateOpt = { year: "numeric", month: "2-digit", day: "2-digit"};
+        var timeOpt = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false};
+        var dFormat = new Intl.DateTimeFormat(vscode.env.language, dateOpt);
+        var tFormat = new Intl.DateTimeFormat(vscode.env.language, timeOpt);
+        var dtFormat = new Intl.DateTimeFormat(vscode.env.language, { ...dateOpt, ...timeOpt});
+        this.formatters = [dFormat,tFormat,dtFormat];
         // Init
         this.readHeader();
         /**
@@ -368,16 +375,19 @@ class dbfDocument {
                 switch (col.len) {
                     case 3:
                         if (cmpMode) return (data.readInt24LE(off) & 0x0FFFFFF);
-                        var val = new Date(Date.UTC(0, 0, 0));
-                        val.setDate((data.readInt24LE(off)) - 2414989)
+                        var val = new Date(Date.UTC(0, 0, 0)), v=data.readInt24LE(off);
+                        if(v==0) return null;
+                        val.setDate(v - 2414989)
                         return val;
                     case 4:
                         if (cmpMode) return (data.readInt32LE(off));
-                        var val = new Date(Date.UTC(0, 0, 0));
-                        val.setDate(data.readInt32LE(off) - 2414989)
+                        var val = new Date(Date.UTC(0, 0, 0)),v=data.readInt32LE(off);
+                        if(v==0) return null;
+                        val.setDate(v - 2414989)
                         return val;
                     default:
                         if (cmpMode) return str;
+                        if(str[0]==" ") return null
                         var val = new Date(str.substr(0, 4)+"-"+str.substr(4, 2)+"-"+str.substr(6, 2));
                         //var val = new Date(Date.UTC(0,parseInt(str.substr(4, 2))-1,parseInt(str.substr(6, 2))));
                         //val.setUTCFullYear(parseInt(str.substr(0, 4)));
@@ -387,19 +397,21 @@ class dbfDocument {
             case "T":
                 if (col.len == 4) {
                     if (cmpMode) return data.readInt32LE(off);
-                    var val = new Date(Date.UTC(0,0,1));
+                    var val = new Date(Date.UTC(0,0,1)), v=data.readInt32LE(off);
+                    //if(v==0) return null;
                     val.setFullYear(0);
                     val.setHours(0,0,0);
-                    val.setMilliseconds(data.readInt32LE(off));
+                    val.setMilliseconds(v);
                     return val;
                 }
             // fallthrough
             case "@": case "=":
                 if (cmpMode) return { days: data.readInt32LE(off), msec: data.readInt32LE(off + 4) };
-                var val = new Date(Date.UTC(0, 0, 0));
-                val.setUTCDate(data.readInt32LE(off) - 2414989)
+                var val = new Date(Date.UTC(0, 0, 0)),v1=data.readInt32LE(off), v2=data.readInt32LE(off + 4);
+                if(v1==0) return null;
+                val.setUTCDate(v1 - 2414989)
                 val.setHours(0,0,0);
-                val.setMilliseconds(data.readInt32LE(off + 4));
+                val.setMilliseconds(v2);
                 return val;
             case "I": case "Y": case "+": case "^":
                 var mul = 1;
@@ -499,6 +511,53 @@ class dbfDocument {
         }
     }
 
+    /**
+     *
+     * @param {*} val
+     * @param {dbfColInfo|number} colInfo
+     * @returns {string}
+     */
+    valToString(val, colInfo) {
+        if(typeof(colInfo)=="number") colInfo = this.colInfos[colInfo];
+        var [dFormat,tFormat,dtFormat] = this.formatters;
+        switch (colInfo.type) {
+            case "C":
+            case "Q":   return val;
+            case "L":   return val;
+            case "D":
+                if(val==null)
+                    return dFormat.getEmpty()
+                else
+                    return dFormat.format(val);
+            case "T":
+                if(colInfo.len==4) {
+                    //if(val==null)
+                    //    return tFormat.formatToParts("").map((v)=>v.type=="literal"?v.value : " ".repeat(v.value.length)).join("")
+                    //else
+                        return tFormat.format(val);
+                } //fallthrough
+            case "=":
+            case "@":
+                if(val==null)
+                    return dtFormat.getEmpty()
+                else
+                    return dtFormat.format(val);
+            case "I": case "Y": case "+": case "^":
+                if(typeof(val)=="bigint")
+                    return (val.toString());
+                else
+                    return (val.toFixed(colInfo.dec));
+            case "B": case "Z": case "F": case "N":
+                return (val.toFixed(colInfo.dec));
+            case "V":
+                if(colInfo.len==3)  { return (dFormat.format(val)); }
+                if(colInfo.len==4)  { return (val.toFixed(colInfo.dec)); }
+                //fallthrough
+        }
+        return val + "?";
+    }
+
+
     sort(colId, desc,filters) {
         this.readingRow.fill(false);
         // parameters validation
@@ -563,6 +622,9 @@ class dbfDocument {
                         }
                         break;
                     default:
+                        if(typeof(filters[f])=="string") {
+                            hasFilter=true;
+                        }
                         break;
                 }
             }
@@ -592,7 +654,7 @@ class dbfDocument {
                     if(fIdx>=0 && fIdx<this.colInfos.length) {
                         switch (typeof(rowInfo[fIdx])) {
                             case "string":
-                                if(filters[f].length>0) {
+                                if(typeof(filters[f])=="string" && filters[f].length>0) {
                                     //rowOK = rowOK && (stringCompare.compare(rowInfo[f],filters[f])==0);
                                     rowOK = rowOK && (rowInfo[f].toLowerCase().indexOf(filters[f])>=0);
                                 }
@@ -607,7 +669,9 @@ class dbfDocument {
                                     rowOK = rowOK && (rowInfo[f] == filters[f]);
                                 break;
                             default:
-                                break;
+                                if(typeof(filters[f])=="string" && filters[f].length>0) {
+                                    rowOK = rowOK && (this.valToString(rowInfo[f],fIdx).indexOf(filters[f])>=0);
+                                }
                         }
                     }
 
@@ -699,4 +763,8 @@ Buffer.prototype.readInt24LE = function(off) {
     this.copy(tmp,0,off,off+3);
     if(tmp.readUInt8(2)&0x80) tmp.writeUInt8(0xFF,3);
     return tmp.readInt32LE();
+}
+
+Intl.DateTimeFormat.prototype.getEmpty = function() {
+    return this.formatToParts("").map((v)=>v.type=="literal"?v.value : " ".repeat(v.value.length)).join("")
 }
