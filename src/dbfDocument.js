@@ -378,12 +378,14 @@ class dbfDocument {
                         var val = new Date(Date.UTC(0, 0, 0)), v=data.readInt24LE(off);
                         if(v==0) return null;
                         val.setDate(v - 2414989)
+                        if(isNaN(val)) val = null;
                         return val;
                     case 4:
                         if (cmpMode) return (data.readInt32LE(off));
                         var val = new Date(Date.UTC(0, 0, 0)),v=data.readInt32LE(off);
                         if(v==0) return null;
                         val.setDate(v - 2414989)
+                        if(isNaN(val)) val = null;
                         return val;
                     default:
                         if (cmpMode) return str;
@@ -396,13 +398,25 @@ class dbfDocument {
                 }
                 break;
             case "T":
-                if (col.len == 4) {
+                if(/^[0-9]+\s*$/.test(str)) { //Fox-pro
+                    var val = new Date(Date.UTC(0,0,1));
+                    //if(v==0) return null;
+                    val.setFullYear(0);
+                    val.setHours(0,0,0);
+                    if(col.len>=2) val.setHours(parseInt(str.substr(0,2)));
+                    if(col.len>=4) val.setMinutes(parseInt(str.substr(2,2)));
+                    if(col.len>=6) val.setSeconds(parseInt(str.substr(4,2)));
+                    if(isNaN(val)) val = null;
+                    return val;
+                }
+                if ( col.len == 4 ) {
                     if (cmpMode) return data.readInt32LE(off);
                     var val = new Date(Date.UTC(0,0,1)), v=data.readInt32LE(off);
                     //if(v==0) return null;
                     val.setFullYear(0);
                     val.setHours(0,0,0);
                     val.setMilliseconds(v);
+                    if(isNaN(val)) val = null;
                     return val;
                 }
             // fallthrough
@@ -413,6 +427,7 @@ class dbfDocument {
                 val.setUTCDate(v1 - 2414989)
                 val.setHours(0,0,0);
                 val.setMilliseconds(v2);
+                if(isNaN(val)) val = null;
                 return val;
             case "I": case "Y": case "+": case "^":
                 var mul = 1;
@@ -499,7 +514,7 @@ class dbfDocument {
                 else
                     return (a, b) => a[0] < b[0] ? -v : a[0] > b[0] ? v : 0;
             case "T":
-                if(col.len==4) return (a, b) => v * (a[0] - b[0]);
+                if(col.len<8) return (a, b) => v * (a[0] - b[0]);
                 // fallthrough
             case "@": case "=": // {days, msec}
                 return (a, b) => a[0].days != b[0].days ? v * (a[0].days - b[0].days) : v * (a[0].msec - b[0].msec);
@@ -531,7 +546,7 @@ class dbfDocument {
                 else
                     return dFormat.format(val);
             case "T":
-                if(colInfo.len==4) {
+                if(colInfo.len<8) {
                     //if(val==null)
                     //    return tFormat.formatToParts("").map((v)=>v.type=="literal"?v.value : " ".repeat(v.value.length)).join("")
                     //else
@@ -755,6 +770,14 @@ class dbfDocument {
                 param.sort();
             cb(param);
         });
+    }
+    getCode() {
+        var out = [];
+        for (let i = 0; i < this.colInfos.length; i++) {
+            const col = this.colInfos[i];
+            out.push("aAdd(${1:aStruct},"+`{"${col.name}","${col.type}",${col.len},${col.dec}})`)
+        }
+        return out.ajoin("\n");
     }
 }
 exports.dbfDocument = dbfDocument;
