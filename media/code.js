@@ -97,7 +97,7 @@ function header(colInfo) {
                 case "T": w = 8; break;
                 case "@": w = 22; break;
             }
-            if (colInfo[id].type == "L")
+            if (colInfo[id].baseType == "L")
                 cell.style.width = cell.style.maxWidth = cell.style.minWidth = "18px";
             else
                 cell.style.width = cell.style.maxWidth = cell.style.minWidth = w + "ch";
@@ -106,7 +106,7 @@ function header(colInfo) {
                 cell.onclick = changeOrder;
                 cell.title = colInfo[id].name;
                 cell.textContent = colInfo[id].name;
-            } else if (colInfo[id].type == "L") {
+            } else if (colInfo[id].baseType == "L") {
                 cell.style.padding = "0";
                 var inp = document.createElement("div")
                 inp.classList.add("codicon", "checkbox", "codicon-check-3rd-state");
@@ -118,7 +118,7 @@ function header(colInfo) {
                 var inp = document.createElement("input")
                 inp.addEventListener("keyup", addFilter)
                 cell.appendChild(inp);
-                switch (colInfo[id].type) {
+                switch (colInfo[id].baseType) {
                     case "N":
                         inp.addEventListener("focusin", showNumDrop)
                         //inp.addEventListener("focusout", hideNumDrop)
@@ -172,7 +172,7 @@ function setupRows() {
         for (let id = 0; id < dbfCols.length; id++) {
             /** @type {HTMLElement} */
             var cell = document.createElement("td");
-            switch (dbfCols[id].type) {
+            switch (dbfCols[id].baseType) {
                 case "C":
                     cell.className = "cCol";
                     break;
@@ -216,7 +216,7 @@ function row(idx, recNo, data, deleted) {
             dest.children[id + 2].classList.add("selected");
         } else
             dest.children[id + 2].classList.remove("selected");
-        if (dbfCols[id].type == "L") {
+        if (dbfCols[id].baseType == "L") {
             var html = '<div class="codicon checkbox'
             if (data[id]) html += " codicon-check"
             html += '"></div>'

@@ -549,7 +549,7 @@ class dbfDocument {
                 else
                     return (val.toFixed(colInfo.dec));
             case "B": case "Z": case "F": case "N":
-                return (val.toFixed(colInfo.dec));
+                return (val.toString());
             case "V":
                 if(colInfo.len==3)  { return (dFormat.format(val)); }
                 if(colInfo.len==4)  { return (val.toFixed(colInfo.dec)); }
