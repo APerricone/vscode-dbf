@@ -391,6 +391,7 @@ class dbfDocument {
                         var val = new Date(str.substr(0, 4)+"-"+str.substr(4, 2)+"-"+str.substr(6, 2));
                         //var val = new Date(Date.UTC(0,parseInt(str.substr(4, 2))-1,parseInt(str.substr(6, 2))));
                         //val.setUTCFullYear(parseInt(str.substr(0, 4)));
+                        if(isNaN(val)) val = null;
                         return val;
                 }
                 break;
