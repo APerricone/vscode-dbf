@@ -547,6 +547,7 @@ function putDropDown(dropDown) {
 
 function showNumDrop(ev) {
     hideDrops();
+    if(("keyCode" in ev)&&(ev.keyCode==27)) return;
     hideNextNumeric = true;
     currentFilterDropDown = ev.target;
     var dropDown = document.getElementById("dropdown_numeric")
@@ -573,6 +574,7 @@ function numericSelected(ev) {
 
 function showTextDrop(ev) {
     hideDrops();
+    if(("keyCode" in ev)&&(ev.keyCode==27)) return;
     hideNextGeneric = true;
     currentFilterDropDown = ev.target;
     var dropDown = document.getElementById("dropdown_generic")
