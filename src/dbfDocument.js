@@ -771,13 +771,28 @@ class dbfDocument {
             cb(param);
         });
     }
-    getCode() {
+    getCode(tab,eol,aStruct,type) {
         var out = [];
+        var nameLen = 1,lenLen=1,decLen=1;
+        if(type!=0) for (let i = 0; i < this.colInfos.length; i++) {
+            const col = this.colInfos[i];
+            nameLen = Math.max(col.name.length,nameLen);
+            lenLen = Math.max(col.len.toString().length,lenLen);
+            decLen = Math.max(col.dec.toString().length,decLen);
+        }
         for (let i = 0; i < this.colInfos.length; i++) {
             const col = this.colInfos[i];
-            out.push("aAdd(${1:aStruct},"+`{"${col.name}","${col.type}",${col.len},${col.dec}})`)
+            out.push(`{${('"'+col.name+'"').padEnd(nameLen+2)},"${col.type}",${col.len.toString().padStart(lenLen)},${col.dec.toString().padStart(decLen)}}`)
         }
-        return out.ajoin("\n");
+        switch (type) {
+            case 0:
+                return `${aStruct}:={`+out.join(",")+`}`
+            case 1:
+                return `${aStruct}:={${eol}${tab}`+out.join(`, ;${eol}${tab}`)+`${eol}}`
+            case 2:
+                return `aAdd(${aStruct},`+out.join(`)${eol}aAdd(${aStruct},`)+`)${eol}`
+        }
+        return ""
     }
 }
 exports.dbfDocument = dbfDocument;

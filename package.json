@@ -14,9 +14,7 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCustomEditor:dbf-table",
-		"onCommand:vscode-dbf.goto",
-		"onCommand:vscode-dbf.change-encoding"
+		"onCustomEditor:dbf-table"
 	],
 	"main": "./src/extension.js",
 	"contributes": {
@@ -29,6 +27,11 @@
 			{
 				"command": "vscode-dbf.change-encoding",
 				"title": "DBF - reopen with encoding..",
+				"enablement": "vscode-dbf.hasDoc"
+			},
+			{
+				"command": "vscode-dbf.make-code",
+				"title": "DBF - generate code",
 				"enablement": "vscode-dbf.hasDoc"
 			}
 		],
