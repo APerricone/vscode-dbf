@@ -47,3 +47,7 @@ Different filter for numeric columns:
 Auto completation for text columns:
 
 ![Sample of filter 3](images/feature_filter3_excelStyle.png)
+
+Tool for generate code
+
+![Sample of gen code](images/feature_genCode.png)

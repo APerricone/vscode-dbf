@@ -6,7 +6,7 @@
 		"url": "https://github.com/APerricone/vscode-dbf"
 	},
 	"description": "DBF table viewer for VSCode",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"engines": {
 		"vscode": "^1.49.0"
 	},
