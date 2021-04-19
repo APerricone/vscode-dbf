@@ -2,6 +2,14 @@
 
 All notable changes to the "vscode-dbf" extension will be documented in this file.
 
+## [0.1.2]
+ - first version of "generate code" tool
+ - better binary column type conversion
+
+## [0.1.1]
+ - added management of escape key on filter
+ - increase of stability
+
 ## [0.1.0]
  - added filters (!!)
 

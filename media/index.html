@@ -1,40 +1,74 @@
 <html>
-    <head>
-        <meta
-            http-equiv="Content-Security-Policy"
-            content="default-src 'none';
+
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none';
             img-src ${webview.cspSource} data:;
             font-src ${webview.cspSource};
             script-src ${webview.cspSource};
-            style-src ${webview.cspSource} 'self' 'unsafe-inline';"/>
-        <style>
-            @font-face {
-            	font-family: "codicon";
-	            src: url("${baseUri}/codicon.ttf") format("truetype");
-            }
-        </style>
-        <link rel="stylesheet" href="${baseUri}/style.css">
-        <script src="${baseUri}/code.js"></script>
-    </head>
-    <body>
-        <div id="table-cnt">
-            <table>
-                <thead></thead>
-                <tbody></tbody>
-            </table>
-            <div id="empty-scroll"></div>
-            <div id="dropdown_generic" class="dropdown" style="display: none;">
-            </div>
-            <div id="dropdown_numeric" class="dropdown" style="display: none;">
-                <p><span class="icon-space codicon codicon-equal"></span></span>equal</p>
-                <p><span class="icon-space codicon codicon-not-equal"></span></span>equal</p>
-                <p><span class="icon-space codicon codicon-less"></span></span>less</p>
-                <p><span class="icon-space codicon codicon-greater"></span></span>greater</p>
-                <p><span class="icon-space codicon codicon-less-than-equal"></span>less or equal</p>
-                <p><span class="icon-space codicon codicon-greater-than-equal"></span>greater or equal</p>
+            style-src ${webview.cspSource} 'self' 'unsafe-inline';" />
+    <style>
+        @font-face {
+            font-family: "codicon";
+            src: url("${baseUri}/codicon.ttf") format("truetype");
+        }
+    </style>
+    <link rel="stylesheet" href="${baseUri}/style.css">
+    <script src="${baseUri}/code.js"></script>
+</head>
+
+<body>
+    <div id="table-cnt">
+        <table>
+            <thead></thead>
+            <tbody></tbody>
+        </table>
+        <div id="empty-scroll"></div>
+        <div id="dropdown_generic" class="dropdown" style="display: none;">
+        </div>
+        <div id="dropdown_numeric" class="dropdown" style="display: none;">
+            <p><span class="icon-space codicon codicon-equal"></span></span>equal</p>
+            <p><span class="icon-space codicon codicon-not-equal"></span></span>not-equal</p>
+            <p><span class="icon-space codicon codicon-less"></span></span>less</p>
+            <p><span class="icon-space codicon codicon-greater"></span></span>greater</p>
+            <p><span class="icon-space codicon codicon-less-than-equal"></span>less or equal</p>
+            <p><span class="icon-space codicon codicon-greater-than-equal"></span>greater or equal</p>
+        </div>
+        <div id="dropdown_datetime" class="dropdown" style="display: none;">
+            <div id="calendar">
+                January 2021
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mon</th>
+                            <th>Tue</th>
+                            <th>Wed</th>
+                            <th>Thu</th>
+                            <th>Fri</th>
+                            <th>Sat</th>
+                            <th>Sun</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="7">
+                                <input type="button" value="=">
+                                <input type="button" value="≠">
+                                <input type="button" value="<">
+                                <input type="button" value=">">
+                                <input type="button" value="≤">
+                                <input type="button" value="≤">
+                                <input type="button" value="clear">
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
-        <div id="info-cnt">
-        </div>
-    </body>
+    </div>
+    <div id="info-cnt">
+    </div>
+</body>
+
 </html>

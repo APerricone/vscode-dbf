@@ -16,6 +16,7 @@ function activate(context) {
 	vscode.commands.executeCommand('setContext', "vscode-dbf.hasDoc", false);
 	context.subscriptions.push(vscode.commands.registerCommand('vscode-dbf.goto', goto));
 	context.subscriptions.push(vscode.commands.registerCommand('vscode-dbf.change-encoding', changeEncoding));
+	context.subscriptions.push(vscode.commands.registerCommand('vscode-dbf.make-code', createCode));
 
 	vscode.window.registerCustomEditorProvider("dbf-table",new dbfEditorProvider(context))
 }
@@ -61,6 +62,47 @@ function changeEncoding() {
 		if(selected.length>0)
 			editor.setEncoding(selected[0].label)
 		picker.hide();
+	})
+}
+
+function createCode() {
+	/** @type {dbfCustomEditor} */
+	var editor = getEditor();
+	if(!editor) return;
+	vscode.workspace.openTextDocument({
+		language: 'harbour',
+		content: ""
+	}).then(doc => {
+		var eol = doc.eol==vscode.EndOfLine.LF?"\n":"\r\n";
+		var aStruct = "aStruct";
+		var type=0
+		const options = ["one line","one line broken","multiple aAdd"]
+		vscode.window.showTextDocument(doc).then(edit=> {
+			var tab = edit.options.insertSpaces? " ".repeat(edit.options.tabSize) : "\t"
+			function update(noSpace) {
+				edit.edit((editBuilder)=>{
+					editBuilder.replace(new vscode.Range(0,0,doc.lineCount,10000),
+						(noSpace?"":eol.repeat(10))+editor.document.getCode(tab,eol,aStruct,type))
+				})
+			}
+			vscode.window.showQuickPick(options,{
+				"canPickMany": false,
+				onDidSelectItem: (itm) => {
+					type=options.indexOf(itm)
+					update();
+				}}).then((typeSelected)=>{
+					type=options.indexOf(typeSelected)
+					vscode.window.showInputBox({
+						value: aStruct,
+						prompt: "select variable name",
+						validateInput: (vv) =>{
+							aStruct = vv;
+							update();
+							return "";
+						}
+					}).then(()=>update(true))
+				})
+			});
 	})
 }
 

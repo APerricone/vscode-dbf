@@ -113,6 +113,7 @@ proc logicalAndDateTime()
     field->date8 := dt
     field->time4 := dt
     field->time8 := dt
+    dbAppend()
 return
 
 proc numeric()
