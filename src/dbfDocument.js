@@ -161,7 +161,9 @@ class dbfDocument {
             /** @type {dbfColInfo} */
             var colInfo = {};
             var idx = 32 + (colId << 5);
-            colInfo.name = data.toString("ascii", idx, idx + 10).replace(/\0+/, "");
+            colInfo.name = data.toString("ascii", idx, idx + 10)
+            var z = colInfo.name.indexOf("\0");
+            if(z>0) colInfo.name = colInfo.name.substr(0, z)
             colInfo.type = String.fromCharCode(data.readUInt8(idx + 11));
             //12 // spazio di 4
             colInfo.len = data.readUInt8(idx + 16);
