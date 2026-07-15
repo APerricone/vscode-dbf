@@ -739,11 +739,9 @@ class dbfDocument {
             for(let i=0;i<this.sortedIdx.length;i++)
                 this.sortedPos.set(this.sortedIdx[i], i+1);
             //console.log(`${Date.now()-oldTime} fine sort`);
-            var tmp = this.readingRow.slice();
-            this.readingRow.fill(false);
-            for(let i=0;i<tmp.length;i++)
-                if(tmp[i] && i<=this.sortedIdx.length)
-                    this.readingRow[this.sortedIdx[i-1]]=true;
+            // Any rows still flagged in readingRow are serviced by
+            // checkReadingBuff() below, which resolves their display position
+            // through the freshly-built sortedPos, so no remap is needed here.
             this.sorting = undefined;
             this.onSort();
             this.checkReadingBuff()
