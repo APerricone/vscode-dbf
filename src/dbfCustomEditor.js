@@ -1,8 +1,6 @@
 const vscode = require('vscode');
-const { dbfDocument } = require("./dbfDocument");
 const path = require('path');
 const fs = require('fs');
-const { type } = require('os');
 const SUPPORTED_ENCODINGS = require('./encoding').SUPPORTED_ENCODINGS;
 
 
@@ -71,7 +69,6 @@ class dbfCustomEditor {
             this.onMessage(m);
         });
 
-        // eslint-disable-next-line no-unused-vars
         if(dbfCustomEditor.pageHTML) {
             var data = dbfCustomEditor.pageHTML.replace(/\$\{webview\.cspSource\}/g,this.webviewPanel.webview.cspSource)
             data = data.replace(/\$\{baseUri\}/g,this.webviewPanel.webview.asWebviewUri(
@@ -107,12 +104,15 @@ class dbfCustomEditor {
                 this.document.readRows(message.min,Math.min(message.max,this.document.info.nRecord));
                 break;
             case "order":
-                this.document.sort(message.colId,message.desc,message.filters);
                 this.document.onSort = () => {
                     this.webviewPanel.webview.postMessage({
-                        command: 'totalRow', nFilteredRow:
-                            this.document.sortedIdx? this.document.sortedIdx.length : this.document.info.nRecord });
+                        command: 'totalRow',
+                        nFilteredRow: this.document.sortedIdx
+                            ? this.document.sortedIdx.length 
+                            : this.document.info.nRecord
+                    });
                 }
+                this.document.sort(message.colId,message.desc,message.filters);
                 break;
             case "getList":
                 this.document.getListElement(message.colId,message.filter, (items)=>{
@@ -127,17 +127,17 @@ class dbfCustomEditor {
     }
 
     fillWebPanel() {
-        if(!this.document.ready) {
+        if (!this.document.ready)
             throw "document not ready"
-        }
+        
         //console.log(`send Info ${this.document.ready} - ${this.document.colInfos.length} - ${this.document.info.nRecord} `)
         this.webviewPanel.webview.postMessage({ command: 'info', data: this.document.info, cols: this.document.colInfos });
         // write rows
         this.document.onRow =(row) => {
             var rowInfo = [];
-            for (let i = 0; i < row.length; i++) {
+            for (let i = 0; i < row.length; i++)
                 rowInfo.push(this.document.valToString(row[i],i));
-            }
+            
             var cmd = { command: 'row' };
             cmd.data = rowInfo;
             cmd.recNo = row.recNo;
@@ -149,18 +149,18 @@ class dbfCustomEditor {
     }
 
     goto(val) {
-        if(this.document.sortedIdx) {
+        if (this.document.sortedIdx)
             val = this.document.sortedIdx.indexOf(val)+1;
-        }
+        
         this.webviewPanel.webview.postMessage({ command: 'goto', data: val });
     }
     setEncoding(val) {
         const doc = this.document;
         doc.iconvEncode = val;
         doc.statusBarItem.text = val;
-        if( doc.statusBarItem.text in SUPPORTED_ENCODINGS) {
+        if (doc.statusBarItem.text in SUPPORTED_ENCODINGS) 
             doc.statusBarItem.text = SUPPORTED_ENCODINGS[doc.statusBarItem.text].labelShort;
-        }
+        
         this.webviewPanel.webview.postMessage({ command: 'reload' });
     }
 };

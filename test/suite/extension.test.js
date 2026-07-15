@@ -8,7 +8,7 @@ function testDBF(fileName,result, prepare) {
 		var dbf = new dbfDocument(vscode.Uri.file(path.resolve(__dirname,"..","harbour-generator",fileName)))
 		dbf.onReady = () => {
 			assert.strictEqual(dbf.info.nRecord, result.length, "numRecord");
-			dbf.readRows(1,3);
+			dbf.readRows(1,result.length);
 		}
 		dbf.onRow = (row) => {
 			assert.strictEqual(row.length, result[row.recNo-1].length, "row "+row.recNo+" # field");
@@ -23,25 +23,19 @@ function testDBF(fileName,result, prepare) {
 }
 
 /**
- *
+ * Local midnight of the given date, matching how the reader builds dates.
  * @param {Date} dt
  */
 function onlyDate(dt) {
-	var val = new Date(Date.UTC(0,dt.getUTCMonth(),dt.getDate()));
-	val.setUTCFullYear(dt.getUTCFullYear());
-	return val;
+	return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
 }
 /**
- *
+ * Time of day of the given date, in the year 0 like the reader builds times.
  * @param {Date} dt
  */
 function onlyTime(dt) {
-	var val = new Date(dt);
-	//val.setUTCFullYear(0);
-	//val.setUTCHours();
-	//val.setHours(dt.getHours(),dt.getMinutes(),dt.getSeconds());
-	val.setFullYear(0,0,1);
-	val.setHours(dt.getHours(),dt.getMinutes(),dt.getSeconds());
+	var val = new Date(0,0,1,dt.getHours(),dt.getMinutes(),dt.getSeconds());
+	val.setFullYear(0);
 	return val;
 }
 
@@ -60,6 +54,10 @@ suite('dbf Reading Test Suite', () => {
 		const e = baseDates[i];
 		dateTime.push([(i!=1), onlyDate(baseDates[i]),onlyDate(baseDates[i]),onlyDate(baseDates[i]),onlyTime(baseDates[i]),baseDates[i] ]);
 	}
+	// the generated dbf contains a fourth, blank record
+	var emptyTime = new Date(0,0,1);
+	emptyTime.setFullYear(0);
+	dateTime.push([false, null, null, null, emptyTime, null]);
 	test('DateTime Test',  () => testDBF("TestLogicalAndDateTime.dbf",dateTime));
 
 	var numeric = [
