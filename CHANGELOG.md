@@ -2,6 +2,16 @@
 
 All notable changes to the "vscode-dbf" extension will be documented in this file.
 
+## [0.2.0]
+ - inline memo (`M`) columns read from the companion `.FPT`/`.DBT` file [#6](https://github.com/APerricone/vscode-dbf/issues/6)
+ - rewrote the table virtual scrolling: rows are cached and painted as they
+   arrive, fixing rows that flashed a loading bar but never filled while
+   scrolling [#5](https://github.com/APerricone/vscode-dbf/issues/5)
+ - open `.DBF` files whose extension is upper case
+ - fixed sorting/filtering on the first column and the descending toggle
+ - updated the tooling and dependencies to current versions (ESLint 10 flat
+   config, Mocha 11, `@vscode/test-electron`, `iconv-lite` 0.7)
+
 ## [0.1.2]
  - first version of "generate code" tool
  - better binary column type conversion

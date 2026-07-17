@@ -12,8 +12,10 @@ This extension allow to view  ~~and edit~~ DBF table file file, usually created 
 
  * Support for very big file
  * Support for unicode columns and different encoding [#2](https://github.com/APerricone/vscode-dbf/issues/2)
+ * Inline memo columns from the companion `.FPT`/`.DBT` file [#6](https://github.com/APerricone/vscode-dbf/issues/6)
  * Sorting
  * Filtering
+ * Resizable columns (drag the right edge of a column header) [#7](https://github.com/APerricone/vscode-dbf/issues/7)
 
 ## Todo
 

@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
-const { type } = require('os');
 const iconv = require('iconv-lite');
+const { dbfMemoFile } = require('./dbfMemo');
 const SUPPORTED_ENCODINGS = require('./encoding').SUPPORTED_ENCODINGS;
 
 /*
@@ -25,7 +25,7 @@ const SUPPORTED_ENCODINGS = require('./encoding').SUPPORTED_ENCODINGS;
  * 'V' Variable:
  *   len 3 - Date
  *   len 4 - Integer
- * 'M' Memo type - UNSUPPORTED
+ * 'M' Memo type - text read from the companion .FPT/.DBT file
  * 'P' Picture - Image - UNSUPPORTED
  *
  * javascript type -> DBF types
@@ -104,9 +104,9 @@ class dbfDocument {
          */
         this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right)
         this.iconvEncode = vscode.workspace.getConfiguration("dbf-table").get("encoding");
-        if(this.iconvEncode.length==0)
+        if(!this.iconvEncode || this.iconvEncode.length==0)
             this.iconvEncode = vscode.workspace.getConfiguration("files").get("encoding");
-        if(["utf8bom","utf16le","utf16be"].indexOf(this.iconvEncode)>=0 )
+        if(!this.iconvEncode || ["utf8bom","utf16le","utf16be"].indexOf(this.iconvEncode)>=0 )
             this.iconvEncode = "utf8"
         this.statusBarItem.text = this.iconvEncode;
         if( this.statusBarItem.text in SUPPORTED_ENCODINGS) {
@@ -118,6 +118,10 @@ class dbfDocument {
     dispose() {
         if(this.statusBarItem) {
             this.statusBarItem.dispose()
+        }
+        if(this.memoFile) {
+            this.memoFile.dispose()
+            this.memoFile = undefined;
         }
     }
 
@@ -226,6 +230,9 @@ class dbfDocument {
                     case "C": case "Q":
                         colInfo.baseType = "C"
                         break;
+                    case "M":
+                        colInfo.baseType = "M"
+                        break;
                     case "L":
                         colInfo.baseType = "L"
                         break;
@@ -239,7 +246,7 @@ class dbfDocument {
                         colInfo.baseType = "N"
                         break;
                     case "V":
-                        switch (col.len) {
+                        switch (colInfo.len) {
                             case 3:
                                 colInfo.baseType = "D"
                                 break;
@@ -250,6 +257,7 @@ class dbfDocument {
                                 colInfo.baseType = "U"
                                 break;
                         }
+                        break;
                     default:
                         colInfo.baseType = "U"
                         break;
@@ -257,6 +265,8 @@ class dbfDocument {
                 this.colInfos.push(colInfo);
             }
         }
+        if (this.colInfos.some((c) => c.type == "M"))
+            this.memoFile = dbfMemoFile.open(this.uri.fsPath);
         this.ready = true;
         this.onReady(this);
     }
@@ -314,8 +324,8 @@ class dbfDocument {
             if(!this.readingRow[idx]) return;
             this.readingRow[idx] = false;
             var ordNo = idx;
-            if (this.sortedIdx)
-                ordNo = this.sortedIdx.indexOf(idx)+1;
+            if (this.sortedPos)
+                ordNo = this.sortedPos.get(idx) || 0;
             var rowInfo = this.readRowFromBuffer(data, off);
             rowInfo.recNo = idx;
             rowInfo.ordNo = ordNo;
@@ -334,12 +344,27 @@ class dbfDocument {
 
     readRows(start, end) {
         if (this.sortedIdx) {
+            end = Math.min(end, this.sortedIdx.length);
             for(let i=start;i<=end;++i) {
                 this.readingRow[this.sortedIdx[i-1]] = true;
             }
         } else
             this.readingRow.fill(true,start,end+1)
         this.checkReadingBuff()
+    }
+
+    /**
+     * Convert a julian day number to a local midnight Date,
+     * so Intl formatters display the stored day in every timezone.
+     * @param {Number} jd julian day number
+     * @returns {Date|null}
+     */
+    julianToDate(jd) {
+        if (jd == 0) return null;
+        // 2440588 is the julian day number of 1970-01-01
+        var t = new Date((jd - 2440588) * 86400000);
+        if (isNaN(t)) return null;
+        return new Date(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
     }
 
     /**
@@ -377,34 +402,22 @@ class dbfDocument {
                 switch (col.len) {
                     case 3:
                         if (cmpMode) return (data.readInt24LE(off) & 0x0FFFFFF);
-                        var val = new Date(Date.UTC(0, 0, 0)), v=data.readInt24LE(off);
-                        if(v==0) return null;
-                        val.setDate(v - 2414989)
-                        if(isNaN(val)) val = null;
-                        return val;
+                        return this.julianToDate(data.readInt24LE(off));
                     case 4:
                         if (cmpMode) return (data.readInt32LE(off));
-                        var val = new Date(Date.UTC(0, 0, 0)),v=data.readInt32LE(off);
-                        if(v==0) return null;
-                        val.setDate(v - 2414989)
-                        if(isNaN(val)) val = null;
-                        return val;
+                        return this.julianToDate(data.readInt32LE(off));
                     default:
                         if (cmpMode) return str;
                         if(str[0]==" ") return null
-                        var val = new Date(str.substr(0, 4)+"-"+str.substr(4, 2)+"-"+str.substr(6, 2));
-                        //var val = new Date(Date.UTC(0,parseInt(str.substr(4, 2))-1,parseInt(str.substr(6, 2))));
-                        //val.setUTCFullYear(parseInt(str.substr(0, 4)));
+                        // build a local date so it is displayed as stored
+                        var val = new Date(parseInt(str.substr(0, 4)), parseInt(str.substr(4, 2))-1, parseInt(str.substr(6, 2)));
                         if(isNaN(val)) val = null;
                         return val;
                 }
-                break;
             case "T":
                 if(/^[0-9]+\s*$/.test(str)) { //Fox-pro
-                    var val = new Date(Date.UTC(0,0,1));
-                    //if(v==0) return null;
+                    var val = new Date(0,0,1);
                     val.setFullYear(0);
-                    val.setHours(0,0,0);
                     if(col.len>=2) val.setHours(parseInt(str.substr(0,2)));
                     if(col.len>=4) val.setMinutes(parseInt(str.substr(2,2)));
                     if(col.len>=6) val.setSeconds(parseInt(str.substr(4,2)));
@@ -413,22 +426,19 @@ class dbfDocument {
                 }
                 if ( col.len == 4 ) {
                     if (cmpMode) return data.readInt32LE(off);
-                    var val = new Date(Date.UTC(0,0,1)), v=data.readInt32LE(off);
-                    //if(v==0) return null;
+                    // milliseconds from midnight, rolled over by the Date ctor
+                    var val = new Date(0,0,1,0,0,0,data.readInt32LE(off));
                     val.setFullYear(0);
-                    val.setHours(0,0,0);
-                    val.setMilliseconds(v);
                     if(isNaN(val)) val = null;
                     return val;
                 }
             // fallthrough
             case "@": case "=":
                 if (cmpMode) return { days: data.readInt32LE(off), msec: data.readInt32LE(off + 4) };
-                var val = new Date(Date.UTC(0, 0, 0)),v1=data.readInt32LE(off), v2=data.readInt32LE(off + 4);
+                var v1=data.readInt32LE(off), v2=data.readInt32LE(off + 4);
                 if(v1==0) return null;
-                val.setUTCDate(v1 - 2414989)
-                val.setHours(0,0,0);
-                val.setMilliseconds(v2);
+                var val = this.julianToDate(v1);
+                if(val!=null) val.setMilliseconds(v2);
                 if(isNaN(val)) val = null;
                 return val;
             case "I": case "Y": case "+": case "^":
@@ -471,8 +481,22 @@ class dbfDocument {
                     default:
                         return null;
                 }
-            case "M":
-                return "<memo data>"
+            case "M": {
+                // the record stores the block number in the memo file,
+                // as binary int when len is 4, as text otherwise
+                var block;
+                if (col.len == 4)
+                    block = data.readInt32LE(off);
+                else
+                    block = parseInt(str, 10);
+                if (!this.memoFile || !(block > 0)) return "";
+                var memo = this.memoFile.read(block);
+                if (memo == null) return "";
+                if (memo.binary) return "<binary data>";
+                if (col.flags & 0x40)
+                    return memo.data.toString("utf16le");
+                return iconv.decode(memo.data, this.iconvEncode);
+            }
             default:
                 if (cmpMode) return 0;
                 return (col.type + "unsupported");
@@ -506,7 +530,7 @@ class dbfDocument {
     getCmpFunc(col,desc,coll) {
         var v = desc? -1 : 1;
         switch (col.type) {
-            case "C": case "Q":
+            case "C": case "Q": case "M":
                 return (a, b) => v*coll.compare(a,b); //a[0] < b[0] ? -v : a[0] > b[0] ? v : 0;
             case "L":
                 return (a, b) => a[0] == b[0] ? 0 : a[0] ? v : -v;
@@ -540,7 +564,8 @@ class dbfDocument {
         var [dFormat,tFormat,dtFormat] = this.formatters;
         switch (colInfo.type) {
             case "C":
-            case "Q":   return val;
+            case "Q":
+            case "M":   return val;
             case "L":   return val;
             case "D":
                 if(val==null)
@@ -582,7 +607,7 @@ class dbfDocument {
         if (typeof (colId) == "string") {
             var colname = colId;
             colId = this.colInfos.findIndex((v) => v.name == colname);
-            if (codId < 0) throw colName + " not found";
+            if (colId < 0) throw colname + " not found";
         }
         if (typeof (colId) != "number") throw "invalid parameter";
         if(this.sorting)
@@ -596,7 +621,7 @@ class dbfDocument {
             var idx = parseInt(f);
             if(idx>=0 && idx<this.colInfos.length && f[0]>="0" && f[0]<="9") {
                 switch (this.colInfos[idx].baseType) {
-                    case "C":
+                    case "C": case "M":
                         if(filters[f].length>0) {
                             hasFilter=true;
                             filters[idx]=filters[idx].toLowerCase();
@@ -648,9 +673,10 @@ class dbfDocument {
             }
         }
         if(colId<0) colId=undefined;
-        if (!colId && !hasFilter) {
+        if (colId==undefined && !hasFilter) {
             this.sortCol = undefined;
             this.sortedIdx = undefined;
+            this.sortedPos = undefined;
             this.onSort();
             this.checkReadingBuff()
             return;
@@ -658,7 +684,7 @@ class dbfDocument {
         this.sortCol = colId;
         this.sorted_desc = Boolean(desc);
         // read values
-        var sortColInfo = colId? this.colInfos[colId] : undefined;
+        var sortColInfo = colId!=undefined? this.colInfos[colId] : undefined;
         var colData = Array(this.info.nRecord);
         var nRow = 0;
         var oldTime = Date.now()
@@ -709,12 +735,13 @@ class dbfDocument {
                 colData.sort(sortFn);
             }
             this.sortedIdx = colData.map((v)=>v[1]);
+            this.sortedPos = new Map();
+            for(let i=0;i<this.sortedIdx.length;i++)
+                this.sortedPos.set(this.sortedIdx[i], i+1);
             //console.log(`${Date.now()-oldTime} fine sort`);
-            var tmp = this.readingRow.slice();
-            this.readingRow.fill(false);
-            for(let i=0;i<tmp.length;i++)
-                if(tmp[i])
-                    this.readingRow[this.sortedIdx[i-1]]=true;
+            // Any rows still flagged in readingRow are serviced by
+            // checkReadingBuff() below, which resolves their display position
+            // through the freshly-built sortedPos, so no remap is needed here.
             this.sorting = undefined;
             this.onSort();
             this.checkReadingBuff()

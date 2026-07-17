@@ -10,6 +10,7 @@ body {
 }
 
 .cCol { color: var(--vscode-debugTokenExpression-string); }
+.mCol { color: var(--vscode-debugTokenExpression-string); }
 .nCol { color: var(--vscode-debugTokenExpression-number); }
 .lCol { color: var(--vscode-debugTokenExpression-boolean); }
 
@@ -17,15 +18,13 @@ body {
     width: 78%;
     height: 98%;
     display: inline-block;
-    overflow-x: scroll;
-    overflow-y: scroll;
+    overflow: auto;
     position: relative;
 }
 
 #info-cnt {
     width: 18%;
     float: right;
-    height: 98%;
     height: 98%;
     display: block;
     overflow-y: scroll;
@@ -44,26 +43,62 @@ body {
 }
 
 #table-cnt table {
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
     position: absolute;
-}
-#table-cnt th,#table-cnt td {
-    border: 1px solid var(--vscode-editor-lineHighlightBorder);
-    padding: 0.2em;
-    white-space: pre;
-}
-#table-cnt .noborder {
-    border: none;
-    background-color: transparent;
+    top: 0;
 }
 
-#table-cnt thead tr th {
-    background-color: var(--vscode-editor-symbolHighlightBackground);
+#table-cnt th, #table-cnt td {
+    border-right: 1px solid var(--vscode-editor-lineHighlightBorder);
+    border-bottom: 1px solid var(--vscode-editor-lineHighlightBorder);
+    padding: 0.2em;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#table-cnt th:first-child, #table-cnt td:first-child {
+    border-left: 1px solid var(--vscode-editor-lineHighlightBorder);
 }
 
 #table-cnt thead tr:nth-child(1) th {
+    border-top: 1px solid var(--vscode-editor-lineHighlightBorder);
+}
+
+#table-cnt .noborder {
+    border: none;
+    background-color: var(--vscode-editor-background);
+    background-image: none;
+}
+
+/* the header sticks to the top of the scrolling area while the rows move */
+#table-cnt thead th {
+    position: sticky;
+    z-index: 3;
+    /* layer the (possibly translucent) highlight over an opaque background */
+    background-color: var(--vscode-editor-background);
+    background-image: linear-gradient(var(--vscode-editor-symbolHighlightBackground), var(--vscode-editor-symbolHighlightBackground));
+}
+
+#table-cnt thead tr:nth-child(1) th {
+    top: 0;
     cursor: pointer;
-    position: relative;
+}
+
+#table-cnt thead tr:nth-child(2) th {
+    top: var(--row1-h, 1.6em);
+}
+
+.col-resize-handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 4;
 }
 
 .sort-asc:after {
@@ -84,12 +119,13 @@ body {
     border-radius: 50%;
 }
 
-#table-cnt tbody tr:nth-child(odd) {
+#table-cnt tbody tr.odd-row {
     background-color: var(--vscode-editor-inactiveSelectionBackground);
 }
 
 #table-cnt tbody>tr>td:nth-child(1) {
     color: var(--vscode-editorLineNumber-foreground);
+    text-align: right;
 }
 
 #table-cnt .filled td.loading {
@@ -100,7 +136,6 @@ body {
     background: linear-gradient(90deg, transparent 49%, var(--vscode-progressBar-background) 49%, var(--vscode-progressBar-background) 52%, transparent 52%);
     animation: loading 10s linear infinite;
     background-size: 200% 1px;
-
 }
 
 #table-cnt .empty td:nth-child(n+3) {
@@ -126,7 +161,7 @@ input {
     margin: 0;
     border: 0;
     padding: 0;
-
+    box-sizing: border-box;
 }
 ::placeholder {
     color: var(--vscode-input-placeholderForeground);
@@ -172,8 +207,6 @@ input {
     width: 18px;
     border: 1px solid var(--vscode-checkbox-border);
     border-radius: 3px;
-    /*margin-right: 9px;
-    margin-left: 0;*/
     padding: 0;
 	background-color: var(--vscode-checkbox-background);
 	color: var(--vscode-checkbox-foreground);
@@ -189,13 +222,14 @@ input {
     position: absolute;
     top: 0;
     left: 0;
-    width: fit-content;;
+    width: fit-content;
     height: auto;
     background-color: var(--vscode-editorSuggestWidget-background);
     color: var(--vscode-editorSuggestWidget-foreground);
     border-color: var(--vscode-editorSuggestWidget-border);
     border-style: solid;
     border-width: 1px;
+    z-index: 10;
 }
 
 .dropdown p {
